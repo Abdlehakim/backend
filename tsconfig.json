@@ -1,16 +1,31 @@
 {
   "compilerOptions": {
-    "target": "ES2016",              // Use a modern JavaScript version
-    "module": "commonjs",            // Node uses CommonJS modules
-    "rootDir": "./src",              // Where your TS source files are located
-    "outDir": "./dist",              // Where the compiled JS files will go
-    "strict": true,                  // Enable strict type checking
-    "esModuleInterop": true,         // Compatibility for default imports from CommonJS
-    "skipLibCheck": true,            // Skip type checking of declaration files
+    /* ---------- emit ---------- */
+    "target": "ES2016",          // modern syntax, still widely supported
+    "module": "commonjs",
+    "outDir": "./dist",
+    "rootDir": "./src",
 
-    /*  👇  add these two lines  */
-    "baseUrl": "./src",
-    "paths": { "@/*": ["*"] }
+    /* ---------- type-checking ---------- */
+    "strict": true,
+    "skipLibCheck": true,        // don't crawl .d.ts from node_modules
+    "esModuleInterop": true,     // allow `import express from "express"`
+
+    /* ---------- module resolution ---------- */
+    "moduleResolution": "node",
+    "resolveJsonModule": true,   // lets you `import data from "./file.json"`
+
+    /* ---------- path alias ---------- */
+    "baseUrl": "./src",          // all non-relative imports resolve from /src
+    "paths": {
+      "@/*": ["*"]               // "@/models/User" → "src/models/User"
+    },
+
+    /* ---------- source-map & emit helpers (optional) ---------- */
+    "sourceMap": true,           // easier stack traces in dev
+    "emitDecoratorMetadata": false,
+    "experimentalDecorators": false
   },
+
   "include": ["src/**/*"]
 }

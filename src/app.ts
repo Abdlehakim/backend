@@ -13,7 +13,7 @@ import "./db";               // side-effect: opens Mongo connection
 
 /* 2️⃣  EXPRESS CORE ---------------------------------------------------- */
 const app  = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT;
 
 /* Trust Render / Heroku proxy so `secure` cookies survive */
 app.set("trust proxy", 1);

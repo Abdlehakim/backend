@@ -1,21 +1,20 @@
 {
   "name": "backend",
   "version": "1.0.0",
-  "main": "index.js",
   "description": "",
+  "main": "index.js",
 
-"_moduleAliases": {
-    "@": "dist"         
+  "_moduleAliases": {
+    "@": "src"    
   },
-    "scripts": {
+
+  "scripts": {
     "build": "tsc",
     "start": "node -r module-alias/register dist/app.js",
-    "dev": "nodemon --watch 'src/**/*.ts' --exec ts-node src/app.ts",
+    "dev": "nodemon --watch 'src/**/*.ts' --exec \"ts-node -r module-alias/register src/app.ts\"",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+
   "dependencies": {
     "bcrypt": "^5.1.1",
     "cloudinary": "^2.5.1",
@@ -32,6 +31,7 @@
     "nodemailer": "^6.10.0",
     "react-icons": "^5.5.0"
   },
+
   "devDependencies": {
     "@types/bcrypt": "^5.0.2",
     "@types/cookie-parser": "^1.4.8",

@@ -10,9 +10,7 @@
 
     /*  👇  add these two lines  */
     "baseUrl": "./src",
-    "paths": {
-      "@/*": ["*"]
-    }
+    "paths": { "@/*": ["*"] }
   },
   "include": ["src/**/*"]
 }

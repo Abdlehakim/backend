@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "target": "ES2016",              // Use a modern JavaScript version
+    "module": "commonjs",            // Node uses CommonJS modules
+    "rootDir": "./src",              // Where your TS source files are located
+    "outDir": "./dist",              // Where the compiled JS files will go
+    "strict": true,                  // Enable strict type checking
+    "esModuleInterop": true,         // Compatibility for default imports from CommonJS
+    "skipLibCheck": true,            // Skip type checking of declaration files
+
+    /*  👇  add these two lines  */
+    "baseUrl": "./src",
+    "paths": {
+      "@/*": ["*"]
+    }
+  },
+  "include": ["src/**/*"]
+}

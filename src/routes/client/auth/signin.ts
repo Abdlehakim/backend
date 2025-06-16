@@ -28,13 +28,13 @@ function generateToken(user: IClient): string {
 }
 
 function setAuthCookie(res: Response, token: string): void {
-  res.cookie("token_FrontEnd", token, {
-    httpOnly: true,
-    secure: isProd,                 // HTTPS only in production
-    sameSite: isProd ? "none" : "lax",
-    path: "/",                      // send on every route
-    maxAge: 60 * 60 * 1000,         // 1 h
-  });
+  res.cookie("token_FrontEndAdmin", token, {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production", // true on Render
+  sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+  path: "/",
+  maxAge: 60 * 60 * 1000, // 1 h
+});
 }
 
 const router = Router();

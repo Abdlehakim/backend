@@ -65,8 +65,14 @@ import contactUsRoutes           from "./routes/NavMenu/contactUsRoutes";
 import HomeBanner                from "./routes/homePage/HomeBanner";
 import categorieSubCategoriePage from "./routes/NavMenu/categorieSubCategoriePage";
 import ProductPromotion          from "./routes/NavMenu/ProductPromotion";
-import ProductCollection         from "./routes/NavMenu/ProductCollection";
+import NewProducts         from "./routes/NavMenu/newProducts";
 import BestProductCollection     from "./routes/NavMenu/BestProductCollection";
+
+
+/* ---------- header Website / sections ---------- */
+import GetHeadertopData from "./routes/website/header/getHeadertopData";
+import GetHeaderData from "./routes/website/header/getHeaderData";
+import GetFooterData from "./routes/website/header/getFooterData";
 
 /* ---------- Product detail / sections ---------- */
 import MainProductSection from "./routes/products/MainProductSection";
@@ -202,7 +208,7 @@ app.use("/api/products/ProductReviews",        ProductReviews);
 app.use("/api/NavMenu/categorieSubCategoriePage", categorieSubCategoriePage);
 app.use("/api/NavMenu/contactus",                 contactUsRoutes);
 app.use("/api/NavMenu/ProductPromotion",          ProductPromotion);
-app.use("/api/NavMenu/ProductCollection",         ProductCollection);
+app.use("/api/NavMenu/NewProducts",         NewProducts);
 app.use("/api/NavMenu/BestProductCollection",     BestProductCollection);
 
 app.use("/api/Blog", postsRoutes);
@@ -216,6 +222,13 @@ app.use("/api/client/address", getClientAddress);
 app.use("/api/client/address", postClientAddress);
 app.use("/api/client/address", updateClienAddressById);
 app.use("/api/client/address", deleteClientAddress);
+
+/* ---------- header Website / sections ---------- */
+
+app.use("/api/website/header/", GetHeadertopData);
+app.use("/api/website/header/", GetHeaderData);
+app.use("/api/website/header/", GetFooterData);
+
 
 /* ---------- Dashboard paths (auth, users, roles, stock, etc.) --------- */
 app.use("/api/signindashboardadmin", signinDashboardAdmin);

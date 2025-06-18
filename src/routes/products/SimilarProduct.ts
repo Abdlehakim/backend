@@ -1,33 +1,62 @@
-import { Router, Request, Response } from "express";
+// src/routes/api/products/SimilarProduct.ts
+import { Router, Request, Response, NextFunction } from "express";
 import Product from "@/models/stock/Product";
 
 const router = Router();
 
-// GET /api/products/SimilarProduct/Similar?categorieId=${categorieId}&limit=4
+// GET /api/products/SimilarProduct/Similar?categoryId=<id>&limit=4
+router.get(
+  "/Similar",
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      // — validate categoryId
+      const rawCategoryId = req.query.categoryId;
+      if (typeof rawCategoryId !== "string" || !rawCategoryId.trim()) {
+        res.status(400).json({ error: "Missing or invalid categoryId parameter" });
+        return;
+      }
+      const categoryId = rawCategoryId;
 
-router.get("/Similar", async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { categorieId, limit } = req.query;
+      // — parse limit
+      const lim =
+        typeof req.query.limit === "string" && !isNaN(+req.query.limit)
+          ? Math.max(1, +req.query.limit)
+          : 4;
 
-    if (!categorieId) {
-      res.status(400).json({ error: "Missing categorieId parameter" });
-      return;
+      // — fetch
+      const docs = await Product.find({
+        categorie: categoryId,
+        vadmin: "approve",
+      })
+        .select(
+          [
+            "name",
+            "reference",
+            "price",
+            "tva",
+            "discount",
+            "stock",
+            "slug",
+            "mainImageUrl",
+            "nbreview",
+            "averageRating",
+            "categorie",
+            "brand",
+            "boutique",
+          ].join(" ")
+        )
+        .populate("categorie", "name slug")
+        .populate("brand", "name")
+        .populate("boutique", "name")
+        .limit(lim)
+        .lean();
+
+      res.status(200).json(docs);
+    } catch (err) {
+      console.error("Error fetching similar products:", err);
+      next(err);
     }
-
-    // Set limit to provided limit or default to 4
-    const lim = limit ? parseInt(limit as string, 10) : 4;
-
-    // Fetch products that match the categorie and are approved
-    const similarProducts = await Product.find({ categorie: categorieId, vadmin: "approve" })
-      
-      .limit(lim)
-      .exec();
-
-    res.status(200).json(similarProducts);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Error fetching similar products" });
   }
-});
+);
 
 export default router;

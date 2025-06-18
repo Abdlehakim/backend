@@ -17,6 +17,7 @@ router.post(
   memoryUpload.fields([
     { name: "mainImage", maxCount: 1 },
     { name: "extraImages", maxCount: 10 },
+    { name: "attributeImages", maxCount: 30 },
   ]),
   async (req: Request, res: Response): Promise<void> => {
     try {
@@ -38,20 +39,64 @@ router.post(
       const price = parseFloat(req.body.price as string);
       const tva = parseFloat(req.body.tva as string) || 0;
       const discount = parseFloat(req.body.discount as string) || 0;
-      const stockStatus = ((req.body.stockStatus as string) || "in stock").trim();
+      const stockStatus = (
+        (req.body.stockStatus as string) || "in stock"
+      ).trim();
       const statuspage = ((req.body.statuspage as string) || "none").trim();
       const vadmin = ((req.body.vadmin as string) || "not-approve").trim();
 
       // 2) Parse dynamic arrays
       let attributes: { attributeSelected: string; value: any }[] = [];
+
       if (req.body.attributes) {
         try {
-          const rawAttrs = JSON.parse(req.body.attributes as string);
-          attributes = rawAttrs.map((a: { definition: string; value: any }) => ({
-            attributeSelected: a.definition,
-            value: a.value,
-          }));
-        } catch {
+          const rawAttrs = JSON.parse(req.body.attributes as string); // [{ definition, value }]
+          const attrImages = (req.files as any)?.attributeImages || [];
+
+          // Map through each attribute entry
+          attributes = await Promise.all(
+            rawAttrs.map(
+              async (
+                attr: { definition: string; value: any },
+                index: number
+              ) => {
+                let processedValue = attr.value;
+
+                // Upload corresponding image file (by matching index or custom logic)
+                if (Array.isArray(attr.value) && attr.value.length > 0) {
+                  processedValue = await Promise.all(
+                    attr.value.map(async (item: any, i: number) => {
+                      const inputName = `attributeImages-${index}-${i}`;
+                      const file = attrImages.find(
+                        (f: any) => f.fieldname === inputName
+                      );
+
+                      if (file) {
+                        const uploaded = await uploadToCloudinary(
+                          file,
+                          "products/attributes"
+                        );
+                        return {
+                          ...item,
+                          image: uploaded.secureUrl,
+                          imageId: uploaded.publicId,
+                        };
+                      }
+
+                      return item;
+                    })
+                  );
+                }
+
+                return {
+                  attributeSelected: attr.definition,
+                  value: processedValue,
+                };
+              }
+            )
+          );
+        } catch (err) {
+          console.error("Attribute parse error:", err);
           res
             .status(400)
             .json({ success: false, message: "Invalid JSON for attributes" });
@@ -66,7 +111,10 @@ router.post(
         } catch {
           res
             .status(400)
-            .json({ success: false, message: "Invalid JSON for productDetails" });
+            .json({
+              success: false,
+              message: "Invalid JSON for productDetails",
+            });
           return;
         }
       }
@@ -84,7 +132,8 @@ router.post(
       const extraImagesUrl: string[] = [];
       const extraImagesId: string[] = [];
       if (req.files && Array.isArray((req.files as any).extraImages)) {
-        for (const file of (req.files as any).extraImages as Express.Multer.File[]) {
+        for (const file of (req.files as any)
+          .extraImages as Express.Multer.File[]) {
           const uploaded = await uploadToCloudinary(file, "products");
           extraImagesUrl.push(uploaded.secureUrl);
           extraImagesId.push(uploaded.publicId);
@@ -116,7 +165,9 @@ router.post(
         productDetails,
       });
 
-      res.status(201).json({ success: true, message: "Product created.", product });
+      res
+        .status(201)
+        .json({ success: true, message: "Product created.", product });
     } catch (err: any) {
       console.error("Create AllProduct Error:", err);
       if (err.code === 11000) {

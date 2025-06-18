@@ -1,18 +1,8 @@
-// models/specialPageBanner.ts
+// models/websitedata/specialPageBanner.ts
+
+
 import mongoose, { Schema, Document, Model } from 'mongoose';
 
-/**
- * Banner data for the three hero areas reused on various “special”
- * landing pages, such as:
- *   1. Best-Collection
- *   2. Promotion
- *   3. New-Products
- *
- * Each section stores:
- *   • Cloudinary image URL
- *   • Cloudinary public ID
- *   • A headline shown on the frontend
- */
 export interface ISpecialPageBanner extends Document {
   // Best-Collection
   BCbannerImgUrl: string;

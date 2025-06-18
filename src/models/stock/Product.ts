@@ -2,6 +2,9 @@
 import mongoose, { Schema, Document, Model, Types } from "mongoose";
 import crypto from "crypto";
 
+/* ------------------------------------------------------------------ */
+/* Interfaces                                                         */
+/* ------------------------------------------------------------------ */
 export interface IProduct extends Document {
   name: string;
   info: string;
@@ -37,22 +40,26 @@ export interface IProduct extends Document {
 
   attributes: {
     attributeSelected: Types.ObjectId;
-    value:
+    value?:
       | string
-      | Array<{ name: string; value: string }>
-      | Array<{ name: string; hex: string }>;
+      | Array<{
+          name: string;
+          value?: string;
+          hex?: string;
+          image?: string;
+          imageId?: string;
+        }>;
   }[];
 
-  productDetails: {
-    name: string;
-    description?: string;
-  }[];
+  productDetails: { name: string; description?: string }[];
 
   createdAt: Date;
   updatedAt: Date;
 }
 
-/* helpers */
+/* ------------------------------------------------------------------ */
+/* Helpers                                                            */
+/* ------------------------------------------------------------------ */
 const generateProductReference = () =>
   "pr" + crypto.randomBytes(3).toString("hex").toLowerCase();
 
@@ -65,10 +72,12 @@ const slugify = (n: string) =>
     .replace(/\s+/g, "-")
     .replace(/[^\w-]+/g, "");
 
-/* schema */
+/* ------------------------------------------------------------------ */
+/* Schema                                                             */
+/* ------------------------------------------------------------------ */
 const ProductSchema = new Schema<IProduct>(
   {
-    /* basic */
+    /* ------------ basics ------------ */
     name: { type: String, unique: true, required: true },
     info: { type: String },
     description: { type: String },
@@ -76,147 +85,104 @@ const ProductSchema = new Schema<IProduct>(
     reference: { type: String, required: true, unique: true },
     slug: { type: String, unique: true },
 
-    categorie: {
-      type: Schema.Types.ObjectId,
-      ref: "Categorie",
-      required: true,
-    },
-    subcategorie: {
-      type: Schema.Types.ObjectId,
-      ref: "SubCategorie",
-      default: null,
-    },
-    boutique: {
-      type: Schema.Types.ObjectId,
-      ref: "Boutique",
-      default: null,
-    },
-    brand: {
-      type: Schema.Types.ObjectId,
-      ref: "Brand",
-      default: null,
-    },
+    categorie: { type: Schema.Types.ObjectId, ref: "Categorie", required: true },
+    subcategorie: { type: Schema.Types.ObjectId, ref: "SubCategorie", default: null },
+    boutique: { type: Schema.Types.ObjectId, ref: "Boutique", default: null },
+    brand: { type: Schema.Types.ObjectId, ref: "Brand", default: null },
 
     stock: { type: Number, required: true, min: 0 },
     price: { type: Number, required: true, min: 0 },
     tva: { type: Number, default: 0, min: 0, max: 100 },
     discount: { type: Number, default: 0, min: 0, max: 100 },
 
-    stockStatus: {
-      type: String,
-      enum: ["in stock", "out of stock"],
-      default: "in stock",
-    },
-    statuspage: {
-      type: String,
-      enum: ["none", "New-Products", "promotion", "best-collection"],
-      default: "none",
-    },
-    vadmin: {
-      type: String,
-      enum: ["not-approve", "approve"],
-      default: "not-approve",
-    },
+    stockStatus: { type: String, enum: ["in stock", "out of stock"], default: "in stock" },
+    statuspage: { type: String, enum: ["none", "New-Products", "promotion", "best-collection"], default: "none" },
+    vadmin: { type: String, enum: ["not-approve", "approve"], default: "not-approve" },
 
-    /* images */
+    /* ------------ images ------------ */
     mainImageUrl: { type: String, required: true },
     mainImageId: { type: String, default: null },
     extraImagesUrl: { type: [String], default: [] },
     extraImagesId: { type: [String], default: [] },
 
-    /* ratings */
+    /* ------------ ratings ----------- */
     nbreview: { type: Number, default: 0 },
     averageRating: { type: Number, default: 0 },
 
-    /* users */
-    createdBy: {
-      type: Schema.Types.ObjectId,
-      ref: "DashboardUser",
-      required: true,
-    },
-    updatedBy: {
-      type: Schema.Types.ObjectId,
-      ref: "DashboardUser",
-      default: null,
-    },
+    /* ------------ users ------------- */
+    createdBy: { type: Schema.Types.ObjectId, ref: "DashboardUser", required: true },
+    updatedBy: { type: Schema.Types.ObjectId, ref: "DashboardUser", default: null },
 
-    /* dynamic attributes */
+    /* ------------ dynamic attributes ------------ */
     attributes: [
       {
         attributeSelected: {
           type: Schema.Types.ObjectId,
           ref: "ProductAttribute",
-        },
-        value: {
-          type: Schema.Types.Mixed,
           required: true,
-          validate: {
-            validator: (v: any) => {
-              // plain string
-              if (typeof v === "string") {
-                return v.trim().length > 0;
-              }
+        },
 
-              // array of pairs
-              if (Array.isArray(v)) {
-                return (
-                  v.length > 0 &&
-                  v.every((p) => {
-                    if (
-                      typeof p !== "object" ||
-                      !p.name ||
-                      typeof p.name !== "string" ||
-                      !p.name.trim()
-                    ) {
-                      return false;
-                    }
-                    // dimension/other type
-                    if ("value" in p) {
-                      return (
-                        typeof p.value === "string" && p.value.trim().length > 0
-                      );
-                    }
-                    // color type
-                    if ("hex" in p) {
-                      return (
-                        typeof p.hex === "string" && p.hex.trim().length > 0
-                      );
-                    }
-                    return false;
-                  })
-                );
-              }
-
-              // fallback object
-              if (typeof v === "object" && v !== null) {
-                return (
-                  Object.keys(v).length > 0 &&
-                  Object.values(v).every(
-                    (val) => typeof val === "string" && val.trim().length > 0
-                  )
-                );
-              }
-
-              return false;
+        /* value is now OPTIONAL */
+        value: {
+          type: [
+            {
+              name: { type: String, required: true },
+              value: { type: String },
+              hex: { type: String },
+              image: { type: String },
+              imageId: { type: String },
             },
-            message: "Attribute value must be non-empty.",
+          ],
+          required: false,          // ← removed “required: true”
+          validate: {
+            validator(v: any) {
+              /* absent or null is now allowed */
+              if (v === undefined || v === null) return true;
+
+              /* plain string */
+              if (typeof v === "string") return v.trim().length > 0;
+
+              /* array of objects */
+              if (Array.isArray(v)) {
+                if (v.length === 0) return false;
+
+                return v.every((p) => {
+                  if (!p || typeof p.name !== "string" || p.name.trim().length === 0) {
+                    return false;
+                  }
+
+                  const hasPayload =
+                    (typeof p.value === "string" && p.value.trim().length > 0) ||
+                    (typeof p.hex === "string" && p.hex.trim().length > 0) ||
+                    (typeof p.image === "string" && p.image.trim().length > 0) ||
+                    (typeof p.imageId === "string" && p.imageId.trim().length > 0);
+
+                  /* if no payload present, we now also let it pass —
+                     remove `return false` if you want to allow empty rows      */
+                  return true || hasPayload;
+                });
+              }
+
+              return false; // any other datatype rejected
+            },
+            message:
+              "When provided, each attribute row needs a name plus at least one of value, hex, image, or imageId.",
           },
         },
       },
     ],
 
-    /* productDetails */
+    /* ------------ product details ------------ */
     productDetails: [
-      {
-        name: { type: String, required: true, trim: true },
-        description: { type: String, default: null, trim: true },
-      },
+      { name: { type: String, required: true, trim: true }, description: { type: String, default: null, trim: true } },
     ],
   },
   { timestamps: true }
 );
 
-/* pre-validate hook: generate unique reference */
+/* ------------------------------------------------------------------ */
+/* Hooks                                                              */
+/* ------------------------------------------------------------------ */
 ProductSchema.pre<IProduct>("validate", async function (next) {
   if (this.isNew) {
     let ref: string;
@@ -230,15 +196,12 @@ ProductSchema.pre<IProduct>("validate", async function (next) {
   next();
 });
 
-/* pre-save hook: slugify name */
 ProductSchema.pre<IProduct>("save", function (next) {
-  if (this.isModified("name")) {
-    this.slug = slugify(this.name);
-  }
+  if (this.isModified("name")) this.slug = slugify(this.name);
   next();
 });
 
-/* virtual count of reviews */
+/* virtual: review count */
 ProductSchema.virtual("reviewCount", {
   ref: "Review",
   localField: "_id",
@@ -249,6 +212,9 @@ ProductSchema.virtual("reviewCount", {
 ProductSchema.set("toJSON", { virtuals: true });
 ProductSchema.set("toObject", { virtuals: true });
 
+/* ------------------------------------------------------------------ */
+/* Model                                                              */
+/* ------------------------------------------------------------------ */
 const Product: Model<IProduct> =
   mongoose.models.Product || mongoose.model<IProduct>("Product", ProductSchema);
 

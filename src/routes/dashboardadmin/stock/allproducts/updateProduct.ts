@@ -1,4 +1,3 @@
-// routes/dashboardadmin/stock/products/updateProduct.ts
 import { Router, Request, Response } from "express";
 import Product from "@/models/stock/Product";
 import { requirePermission } from "@/middleware/requireDashboardPermission";
@@ -17,6 +16,7 @@ router.put(
   memoryUpload.fields([
     { name: "mainImage", maxCount: 1 },
     { name: "extraImages", maxCount: 10 },
+    { name: "attributeImages", maxCount: 30 },
   ]),
   async (req: Request, res: Response): Promise<void> => {
     const { productId } = req.params;
@@ -27,9 +27,6 @@ router.put(
       return;
     }
 
-    console.log("BODY:", req.body);
-    console.log("FILES:", req.files);
-
     try {
       const existingProduct = await Product.findById(productId);
       if (!existingProduct) {
@@ -37,68 +34,126 @@ router.put(
         return;
       }
 
+      /* ------------------------------------------------------------ */
+      /* 1) scalar & enum fields                                      */
+      /* ------------------------------------------------------------ */
       const updateData: any = { updatedBy: userId };
 
-      // 1) Standard scalar fields
       const fields = [
-        "name","info","description",
-        "categorie","subcategorie","boutique","brand",
-        "stock","price","tva","discount",
-        "stockStatus","statuspage","vadmin"
+        "name",
+        "info",
+        "description",
+        "categorie",
+        "subcategorie",
+        "boutique",
+        "brand",
+        "stock",
+        "price",
+        "tva",
+        "discount",
+        "stockStatus",
+        "statuspage",
+        "vadmin",
       ] as const;
 
-      // Fields that are ObjectId but optional
-      const nullableIds = ["subcategorie","boutique","brand"] as const;
+      const nullableIds = ["subcategorie", "boutique", "brand"] as const;
 
       for (const field of fields) {
         const raw = req.body[field];
-        if (raw !== undefined) {
-          // Handle numeric
-          if (["stock","price","tva","discount"].includes(field)) {
-            updateData[field] = parseFloat(raw);
-          }
-          // Handle nullable ObjectIds
-          else if (nullableIds.includes(field as any)) {
-            // treat "" or "null" as actual null
-            if (raw === "" || raw === "null") {
-              updateData[field] = null;
-            } else {
-              updateData[field] = raw.trim();
-            }
-          }
-          // All others
-          else {
-            updateData[field] =
-              typeof raw === "string" ? raw.trim() : raw;
-          }
+        if (raw === undefined) continue;
+
+        /* numeric fields — skip blanks to avoid NaN */
+        if (["stock", "price", "tva", "discount"].includes(field)) {
+          const num = parseFloat(raw);
+          if (Number.isFinite(num)) updateData[field] = num;
+          continue;
         }
+
+        /* optional ObjectIds */
+        if (nullableIds.includes(field as any)) {
+          updateData[field] =
+            raw === "" || raw === "null" ? null : raw.trim();
+          continue;
+        }
+
+        /* everything else */
+        updateData[field] = typeof raw === "string" ? raw.trim() : raw;
       }
 
-      // 2) productDetails JSON
+      /* ------------------------------------------------------------ */
+      /* 2) productDetails                                            */
+      /* ------------------------------------------------------------ */
       if (req.body.productDetails) {
         try {
           updateData.productDetails = JSON.parse(req.body.productDetails);
         } catch {
-          res.status(400).json({ message: "Invalid JSON for productDetails." });
+          res
+            .status(400)
+            .json({ message: "Invalid JSON for productDetails." });
           return;
         }
       }
 
-      // 3) attributes JSON
+      /* ------------------------------------------------------------ */
+      /* 3) attributes + images                                       */
+      /* ------------------------------------------------------------ */
       if (req.body.attributes) {
         try {
-          const raw = JSON.parse(req.body.attributes);
-          updateData.attributes = raw.map((a: any) => ({
-            attributeSelected: a.definition,
-            value: a.value,
-          }));
+          const rawAttrs = JSON.parse(req.body.attributes);
+          const attrImages = (req.files as any)?.attributeImages || [];
+
+          updateData.attributes = await Promise.all(
+            rawAttrs.map(
+              async (
+                attr: { definition: string; value: any },
+                attrIndex: number
+              ) => {
+                let processedValue = attr.value;
+
+                if (Array.isArray(attr.value) && attr.value.length > 0) {
+                  processedValue = await Promise.all(
+                    attr.value.map(
+                      async (item: any, valIndex: number) => {
+                        const inputName = `attributeImages-${attrIndex}-${valIndex}`;
+                        const file = attrImages.find(
+                          (f: any) => f.originalname === inputName
+                        );
+
+                        /* upload image if present */
+                        if (file) {
+                          const uploaded = await uploadToCloudinary(
+                            file,
+                            "products/attributes"
+                          );
+                          item.image = uploaded.secureUrl;
+                          item.imageId = uploaded.publicId;
+                        }
+
+                        /* ensure colour rows always have .value */
+                        if (item.hex && !item.value) item.value = item.hex;
+
+                        return item;
+                      }
+                    )
+                  );
+                }
+
+                return {
+                  attributeSelected: attr.definition,
+                  value: processedValue,
+                };
+              }
+            )
+          );
         } catch {
           res.status(400).json({ message: "Invalid JSON for attributes." });
           return;
         }
       }
 
-      // 4) mainImage removal or replacement
+      /* ------------------------------------------------------------ */
+      /* 4) main image handling                                       */
+      /* ------------------------------------------------------------ */
       if (req.body.removeMain === "1") {
         if (existingProduct.mainImageId) {
           await cloudinary.uploader.destroy(existingProduct.mainImageId);
@@ -106,7 +161,8 @@ router.put(
         updateData.mainImageUrl = null;
         updateData.mainImageId = null;
       }
-      if (req.files && Array.isArray((req.files as any).mainImage)) {
+
+      if ((req.files as any)?.mainImage?.length) {
         const file = (req.files as any).mainImage[0];
         if (existingProduct.mainImageId) {
           await cloudinary.uploader.destroy(existingProduct.mainImageId);
@@ -116,47 +172,63 @@ router.put(
         updateData.mainImageId = uploaded.publicId;
       }
 
-      // 5) extraImages removal & addition
+      /* ------------------------------------------------------------ */
+      /* 5) extra images (keep / add / delete)                        */
+      /* ------------------------------------------------------------ */
       let keepUrls = existingProduct.extraImagesUrl || [];
-      let keepIds  = existingProduct.extraImagesId  || [];
+      let keepIds = existingProduct.extraImagesId || [];
+
       if (req.body.remainingExtraUrls) {
         try {
           keepUrls = JSON.parse(req.body.remainingExtraUrls);
-          const toDelete = existingProduct.extraImagesId.filter(
-            (id) => !keepUrls.includes(id)
+
+          /* build map url -> id once */
+          const urlToId = new Map<string, string>();
+          existingProduct.extraImagesUrl.forEach((url: string, i: number) =>
+            urlToId.set(url, existingProduct.extraImagesId[i])
           );
+
+          const toDelete: string[] = [];
+          keepIds = [];
+
+          existingProduct.extraImagesUrl.forEach((url: string) => {
+            const id = urlToId.get(url)!;
+            if (keepUrls.includes(url)) keepIds.push(id);
+            else toDelete.push(id);
+          });
+
           for (const publicId of toDelete) {
             await cloudinary.uploader.destroy(publicId);
           }
-          keepIds = existingProduct.extraImagesId.filter((id) =>
-            keepUrls.includes(id)
-          );
         } catch {
-          res.status(400).json({ message: "Invalid JSON for remainingExtraUrls." });
+          res
+            .status(400)
+            .json({ message: "Invalid JSON for remainingExtraUrls." });
           return;
         }
       }
-      if (req.files && Array.isArray((req.files as any).extraImages)) {
+
+      if ((req.files as any)?.extraImages?.length) {
         for (const file of (req.files as any).extraImages) {
           const up = await uploadToCloudinary(file, "products");
           keepUrls.push(up.secureUrl);
           keepIds.push(up.publicId);
         }
       }
-      updateData.extraImagesUrl = keepUrls;
-      updateData.extraImagesId  = keepIds;
 
-      // 6) Persist update
+      updateData.extraImagesUrl = keepUrls;
+      updateData.extraImagesId = keepIds;
+
+      /* ------------------------------------------------------------ */
+      /* 6) save                                                      */
+      /* ------------------------------------------------------------ */
       const updated = await Product.findByIdAndUpdate(
         productId,
         updateData,
         { new: true, runValidators: true }
       );
 
-      res.json({
-        message: "Product updated successfully.",
-        product: updated,
-      });
+      res.json({ message: "Product updated successfully.", product: updated });
     } catch (err: any) {
       console.error("Update Product Error:", err);
       if (err.code === 11000) {

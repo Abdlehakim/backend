@@ -10,8 +10,8 @@ const router = Router();
 router.get('/', async (req: Request, res: Response) => {
   try {
     // Fetch approved categories
-    const cats = await Categorie.find({ vadmin: 'approve' })
-      .select('_id name slug imageUrl')
+   const cats = await Categorie.find({ vadmin: 'approve' })
+      .select('_id reference name slug imageUrl iconUrl bannerUrl vadmin createdBy updatedBy createdAt updatedAt')
       .populate('productCount')
       .lean();
 
@@ -22,13 +22,14 @@ router.get('/', async (req: Request, res: Response) => {
           categorie: cat._id,
           vadmin: 'approve',
         })
-          .select('_id name slug')
+          .select('_id name slug bannerUrl iconUrl imageUrl')
           .lean();
 
         return {
           _id: cat._id.toString(),
           name: cat.name,
           slug: cat.slug,
+           iconUrl:     cat.iconUrl   || null,
           numberproduct: cat.productCount ?? 0,
           imageUrl: cat.imageUrl || '/fallback.jpg',
           subcategories: subs.map((sub: any) => ({

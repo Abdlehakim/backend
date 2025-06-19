@@ -1,4 +1,4 @@
-// src/routes/stock/productattribute/create.ts
+// src/routes/stock/productattribute/addNewProductAttribute.ts
 import { Router, Request, Response } from "express";
 import ProductAttribute, { AttributeType } from "@/models/stock/ProductAttribute";
 import { requirePermission } from "@/middleware/requireDashboardPermission";

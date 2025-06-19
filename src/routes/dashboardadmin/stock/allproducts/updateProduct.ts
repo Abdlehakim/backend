@@ -1,3 +1,5 @@
+// updateProduct.ts
+
 import { Router, Request, Response } from "express";
 import Product from "@/models/stock/Product";
 import { requirePermission } from "@/middleware/requireDashboardPermission";

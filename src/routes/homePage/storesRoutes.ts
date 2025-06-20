@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import Store from '@/models/stock/Boutique';
+import HomePageData from "@/models/websitedata/homePageData";
 
 const router = Router();
 
@@ -23,4 +24,26 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
       res.status(500).json({ error: 'Error fetching store ' });
     }
   });
-  export default router;
+
+
+  // GET /api/store/storeHomePageTitles
+
+router.get(
+  "/storeHomePageTitles",
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      // Only select the title and subtitle fields
+      const storeHomePageTitles = await HomePageData.findOne()
+        .select("HPboutiqueTitle HPboutiqueSubTitle")
+        .exec();
+      res.json(storeHomePageTitles);
+    } catch (err) {
+      console.error(err);
+      res
+        .status(500)
+        .json({ error: "Error fetching storeHomePageTitles" });
+    }
+  }
+);
+
+export default router;

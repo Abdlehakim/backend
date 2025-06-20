@@ -13,9 +13,6 @@ router.get(
   "/getNewProducts",
   async (req: Request, res: Response): Promise<void> => {
     try {
-      await Categorie.find();
-      await Boutique.find();
-      await Brand.find();
       const NewProducts = await Product.find({
         vadmin: "approve",
         statuspage: "New-Products",

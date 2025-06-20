@@ -12,9 +12,6 @@ router.get(
   "/getBestProductCollection",
   async (req: Request, res: Response): Promise<void> => {
     try {
-      await Categorie.find();
-      await Boutique.find();
-      await Brand.find();
       const BestProductCollection = await Product.find({
         vadmin: "approve",
         statuspage: "best-collection",

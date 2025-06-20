@@ -1,6 +1,7 @@
 // src/pages/api/dashboardadmin/stock/brands/create.ts
 
 import { Router, Request, Response } from "express";
+import { Types } from "mongoose";
 import Brand, { IBrand } from "@/models/stock/Brand";
 import { requirePermission } from "@/middleware/requireDashboardPermission";
 import { memoryUpload } from "@/lib/multer";
@@ -10,8 +11,8 @@ const router = Router();
 
 /**
  * POST /api/dashboardadmin/stock/brands/create
- * — accepts optional “logo” and “image” file uploads,
- *    stores them in Cloudinary (folder “brands”),
+ * — accepts optional “logo”, “image” and “description”
+ *    stores files in Cloudinary under “brands”,
  *    and creates a new Brand document.
  */
 router.post(
@@ -23,9 +24,11 @@ router.post(
   ]),
   async (req: Request, res: Response): Promise<void> => {
     try {
+      // --- validate required fields ---
       const name = ((req.body.name as string) || "").trim();
       const place = ((req.body.place as string) || "").trim();
-      const description = ((req.body.description as string) || "").trim();
+      const rawDesc = (req.body.description as string) ?? "";
+      const description = rawDesc.trim();
 
       if (!name || !place) {
         res
@@ -34,70 +37,79 @@ router.post(
         return;
       }
 
-      const userId = req.dashboardUser?._id;
+      // --- get current user ---
+      const userId = req.dashboardUser?._id as Types.ObjectId | undefined;
       if (!userId) {
         res.status(401).json({ success: false, message: "Unauthorized." });
         return;
       }
 
-      // Upload logo if provided
+      // --- upload logo if present ---
       let logoUrl: string | undefined;
       let logoId: string | undefined;
       const logoFile = (req.files as any)?.logo?.[0];
       if (logoFile) {
         const uploadedLogo = await uploadToCloudinary(logoFile, "brands");
         logoUrl = uploadedLogo.secureUrl;
-        logoId = uploadedLogo.publicId;
+        logoId  = uploadedLogo.publicId;
       }
 
-      // Upload main image if provided
+      // --- upload image if present ---
       let imageUrl: string | undefined;
       let imageId: string | undefined;
       const imageFile = (req.files as any)?.image?.[0];
       if (imageFile) {
         const uploadedImage = await uploadToCloudinary(imageFile, "brands");
         imageUrl = uploadedImage.secureUrl;
-        imageId = uploadedImage.publicId;
+        imageId  = uploadedImage.publicId;
       }
 
-      // Build and save the Brand
-      const newBrand = await Brand.create({
+      // --- build payload, only include description if non-empty ---
+      const payload: Partial<IBrand> = {
         name,
         place,
-        description,
-        logoUrl,
-        logoId,
-        imageUrl,
-        imageId,
         createdBy: userId,
-      } as Partial<IBrand>);
+      };
+      if (description) {
+        payload.description = description;
+      }
+      if (logoUrl && logoId) {
+        payload.logoUrl = logoUrl;
+        payload.logoId  = logoId;
+      }
+      if (imageUrl && imageId) {
+        payload.imageUrl = imageUrl;
+        payload.imageId  = imageId;
+      }
 
+      // --- create and respond ---
+      const newBrand = await Brand.create(payload);
       res.status(201).json({
         success: true,
         message: "Brand created successfully.",
         brand: newBrand,
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Create Brand Error:", err);
 
-      // Duplicate key: unique name or reference
-      if (err.code === 11000) {
+      // duplicate key
+      if ((err as any).code === 11000) {
         res
           .status(400)
           .json({ success: false, message: "A brand with that name already exists." });
         return;
       }
 
-      // Mongoose validation errors
-      if (err.name === "ValidationError" && err.errors) {
-        const messages = Object.values(err.errors).map((e: any) => e.message);
+      // validation errors
+      if ((err as any).name === "ValidationError" && (err as any).errors) {
+        const messages = Object.values((err as any).errors).map((e: any) => e.message);
         res
           .status(400)
           .json({ success: false, message: messages.join(" ") });
         return;
       }
 
-      // Fallback
+      // fallback
       res
         .status(500)
         .json({ success: false, message: "Internal server error." });

@@ -7,6 +7,7 @@ export interface IBrand extends Document {
   name: string;
   slug: string;
   place: string;
+  description?: string | null;
   imageUrl?: string;
   imageId?: string;
   logoUrl?: string;
@@ -17,7 +18,6 @@ export interface IBrand extends Document {
   createdAt: Date;
   updatedAt: Date;
 }
-
 
 const generateBrandRef = (): string => {
   const prefix = "br";
@@ -43,6 +43,7 @@ const BrandSchema = new Schema<IBrand>(
     reference: { type: String, required: true, unique: true },
     slug:      { type: String, unique: true },
     place:     { type: String },
+    description: { type: String, default: null },
     imageUrl:  { type: String, default: null },
     imageId:   { type: String, default: null },
     logoUrl:   { type: String, default: null },

@@ -1,4 +1,4 @@
-//dashboardadmin/stock/brands/updateBrand.ts
+// src/pages/api/dashboardadmin/stock/brands/updateBrand.ts
 
 import { Router, Request, Response } from "express";
 import Brand, { IBrand } from "@/models/stock/Brand";
@@ -12,7 +12,7 @@ const router = Router();
 /**
  * PUT /api/dashboardadmin/stock/brands/update/:brandId
  * — updates fields on a Brand, replaces logo/image if provided,
- *    and stamps updatedBy
+ *   and stamps updatedBy
  */
 router.put(
   "/update/:brandId",
@@ -44,10 +44,12 @@ router.put(
       const {
         name,
         place,
+        description,
         vadmin,
       } = req.body as {
         name?: string;
         place?: string;
+        description?: string;
         vadmin?: string;
       };
 
@@ -56,6 +58,9 @@ router.put(
       }
       if (typeof place === "string") {
         updateData.place = place.trim();
+      }
+      if (typeof description === "string") {
+        updateData.description = description.trim() || null;
       }
       if (typeof vadmin === "string") {
         updateData.vadmin = vadmin as "approve" | "not-approve";

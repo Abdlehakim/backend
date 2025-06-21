@@ -1,8 +1,6 @@
 import { Router, Request, Response } from "express";
 import Product from "@/models/stock/Product";
-import Categorie from "@/models/stock/Categorie";
-import Boutique from "@/models/stock/Boutique";
-import Brand from "@/models/stock/Brand";
+
 import specialPageBanner from "@/models/websitedata/specialPageBanner";
 
 const router = Router();
@@ -19,6 +17,7 @@ router.get(
       })
         .lean()
         .populate("categorie"," name slug")
+        .populate("subcategorie", "name slug")
         .populate("boutique"," name")
         .populate("brand"," name ");
 

@@ -18,6 +18,7 @@ router.get(
       })
         .lean()
         .populate("categorie", " name slug")
+        .populate("subcategorie", "name slug")
         .populate("boutique", " name")
         .populate("brand", " name ");
 

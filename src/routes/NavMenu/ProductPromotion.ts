@@ -20,6 +20,7 @@ router.get(
         statuspage: "promotion",
       })
         .populate("categorie", "name slug")
+        .populate("subcategorie", "name slug")
         .populate("brand", "name")
         .populate("boutique", "name")
         .exec();

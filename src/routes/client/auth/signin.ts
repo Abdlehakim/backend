@@ -28,7 +28,7 @@ function generateToken(user: IClient): string {
 }
 
 function setAuthCookie(res: Response, token: string): void {
-  res.cookie("token_FrontEndAdmin", token, {
+  res.cookie("token_FrontEnd", token, {
   httpOnly: true,
   secure: process.env.NODE_ENV === "production", // true on Render
   sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",

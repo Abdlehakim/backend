@@ -11,6 +11,18 @@ import cookieParser                    from "cookie-parser";
 dotenv.config();            // load .env → process.env.*
 import "./db";               // side-effect: opens Mongo connection
 
+/* ── Cookie flags for both set & clear ───────────────────────────────── */
+export const isProd = process.env.NODE_ENV === "production";
+export const COOKIE_DOMAIN = isProd ? ".soukelmeuble.tn" : undefined;
+
+export const COOKIE_OPTS = {
+  httpOnly: true,
+  secure:   isProd,                             // only over HTTPS in prod
+  sameSite: isProd ? ("none" as const) : ("lax" as const),
+  path:     "/",
+  ...(COOKIE_DOMAIN && { domain: COOKIE_DOMAIN }),
+} as const;
+
 /* 2️⃣  EXPRESS CORE ---------------------------------------------------- */
 const app  = express();
 const PORT = process.env.PORT;

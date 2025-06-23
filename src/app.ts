@@ -24,8 +24,8 @@ app.use(cookieParser());
 
 /* 3️⃣  CORS ------------------------------------------------------------ */
 const STATIC_ORIGINS = [
-  "https://admin.soukelmeuble.tn/",
-  "https://api.soukelmeuble.tn/",
+  "https://admin.soukelmeuble.tn",
+  "https://api.soukelmeuble.tn",
   "https://frontendadmin-navy.vercel.app",
   "http://localhost:3001",
   "http://localhost:3002",

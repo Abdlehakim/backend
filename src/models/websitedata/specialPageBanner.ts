@@ -1,6 +1,5 @@
 // models/websitedata/specialPageBanner.ts
 
-
 import mongoose, { Schema, Document, Model } from 'mongoose';
 
 export interface ISpecialPageBanner extends Document {
@@ -18,6 +17,11 @@ export interface ISpecialPageBanner extends Document {
   NPBannerImgUrl: string;
   NPBannerImgId: string;
   NPBannerTitle: string;
+
+  // Blog
+  BlogBannerImgUrl: string;
+  BlogBannerImgId: string;
+  BlogBannerTitle: string;
 }
 
 const SpecialPageBannerSchema = new Schema<ISpecialPageBanner>(
@@ -68,6 +72,23 @@ const SpecialPageBannerSchema = new Schema<ISpecialPageBanner>(
       unique: true,
     },
     NPBannerTitle: {
+      type: String,
+      required: true,
+      unique: true,
+    },
+
+    /* ----------------------------- Blog ------------------------------ */
+    BlogBannerImgUrl: {
+      type: String,
+      required: true,
+      unique: true,
+    },
+    BlogBannerImgId: {
+      type: String,
+      required: true,
+      unique: true,
+    },
+    BlogBannerTitle: {
       type: String,
       required: true,
       unique: true,

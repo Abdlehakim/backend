@@ -1,8 +1,5 @@
 import { Router, Request, Response } from "express";
 import Product from "@/models/stock/Product";
-import Categorie from "@/models/stock/Categorie";
-import Boutique from "@/models/stock/Boutique";
-import Brand from "@/models/stock/Brand";
 import specialPageBanner from "@/models/websitedata/specialPageBanner";
 
 const router = Router();
@@ -35,7 +32,7 @@ router.get("/getBestProductBannerData", async (req: Request, res: Response) => {
   try {
     const getBestProductBannerData = await specialPageBanner
       .findOne()
-      .select("BCbannerImgUrl BCbannerTitle")
+      .select("BlogBannerImgUrl BlogBannerTitle")
       .lean();
     res.json(getBestProductBannerData);
   } catch (err) {

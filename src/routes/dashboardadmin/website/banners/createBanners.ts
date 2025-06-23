@@ -14,20 +14,23 @@ const router = Router();
  * POST /api/dashboardadmin/website/banners/createBanners
  * ------------------------------------------------------
  * Creates the *single* “special-page” banners document, which holds
- * the three hero banners used across dedicated landing pages:
- *   1. Best-Collection             → “BCbanner”
- *   2. Promotion                   → “PromotionBanner”
- *   3. New-Products                → “NPBanner”
+ * the four hero banners used across dedicated landing pages:
+ *   1. Best-Collection   → “BCbanner”
+ *   2. Promotion         → “PromotionBanner”
+ *   3. New-Products      → “NPBanner”
+ *   4. Blog              → “BlogBanner”
  *
  * Request body:
  *   • BCbannerTitle
  *   • PromotionBannerTitle
  *   • NPBannerTitle
+ *   • BlogBannerTitle
  *
  * Multipart uploads:
- *   • BCbanner            (maxCount: 1)
- *   • PromotionBanner     (maxCount: 1)
- *   • NPBanner            (maxCount: 1)
+ *   • BCbanner         (maxCount: 1)
+ *   • PromotionBanner  (maxCount: 1)
+ *   • NPBanner         (maxCount: 1)
+ *   • BlogBanner       (maxCount: 1)
  *
  * All images are uploaded to Cloudinary under the folder “banners”.
  * The route rejects if a document already exists or if required
@@ -40,12 +43,13 @@ router.post(
     { name: "BCbanner", maxCount: 1 },
     { name: "PromotionBanner", maxCount: 1 },
     { name: "NPBanner", maxCount: 1 },
+    { name: "BlogBanner", maxCount: 1 },
   ]),
   async (req: Request, res: Response): Promise<void> => {
     try {
-      /* ------------------------------------------------------------------ */
-      /* Ensure we only ever have ONE document                              */
-      /* ------------------------------------------------------------------ */
+      // ------------------------------------------------------------------
+      // Ensure we only ever have ONE document
+      // ------------------------------------------------------------------
       if (await SpecialPageBanner.exists({})) {
         res.status(400).json({
           success: false,
@@ -55,13 +59,14 @@ router.post(
         return;
       }
 
-      /* ------------------------------------------------------------------ */
-      /* Validate titles                                                    */
-      /* ------------------------------------------------------------------ */
+      // ------------------------------------------------------------------
+      // Validate titles
+      // ------------------------------------------------------------------
       const {
         BCbannerTitle = "",
         PromotionBannerTitle = "",
         NPBannerTitle = "",
+        BlogBannerTitle = "",
       } = req.body as Record<string, string>;
 
       if (!BCbannerTitle.trim()) {
@@ -83,10 +88,16 @@ router.post(
           .json({ success: false, message: "NPBannerTitle is required." });
         return;
       }
+      if (!BlogBannerTitle.trim()) {
+        res
+          .status(400)
+          .json({ success: false, message: "BlogBannerTitle is required." });
+        return;
+      }
 
-      /* ------------------------------------------------------------------ */
-      /* Validate files                                                     */
-      /* ------------------------------------------------------------------ */
+      // ------------------------------------------------------------------
+      // Validate files
+      // ------------------------------------------------------------------
       const files = req.files as Record<string, Express.Multer.File[]>;
 
       if (!files?.BCbanner?.[0]) {
@@ -108,10 +119,16 @@ router.post(
           .json({ success: false, message: "NPBanner image is required." });
         return;
       }
+      if (!files?.BlogBanner?.[0]) {
+        res
+          .status(400)
+          .json({ success: false, message: "BlogBanner image is required." });
+        return;
+      }
 
-      /* ------------------------------------------------------------------ */
-      /* Upload images to Cloudinary                                        */
-      /* ------------------------------------------------------------------ */
+      // ------------------------------------------------------------------
+      // Upload images to Cloudinary
+      // ------------------------------------------------------------------
       const {
         secureUrl: BCbannerImgUrl,
         publicId: BCbannerImgId,
@@ -127,9 +144,14 @@ router.post(
         publicId: NPBannerImgId,
       } = await uploadToCloudinary(files.NPBanner[0], "banners");
 
-      /* ------------------------------------------------------------------ */
-      /* Persist document                                                   */
-      /* ------------------------------------------------------------------ */
+      const {
+        secureUrl: BlogBannerImgUrl,
+        publicId: BlogBannerImgId,
+      } = await uploadToCloudinary(files.BlogBanner[0], "banners");
+
+      // ------------------------------------------------------------------
+      // Persist document
+      // ------------------------------------------------------------------
       const created = await SpecialPageBanner.create({
         BCbannerImgUrl,
         BCbannerImgId,
@@ -142,6 +164,10 @@ router.post(
         NPBannerImgUrl,
         NPBannerImgId,
         NPBannerTitle: NPBannerTitle.trim(),
+
+        BlogBannerImgUrl,
+        BlogBannerImgId,
+        BlogBannerTitle: BlogBannerTitle.trim(),
       } as Partial<ISpecialPageBanner>);
 
       res.status(201).json({

@@ -211,9 +211,9 @@ app.use("/api/NavMenu/ProductPromotion",          ProductPromotion);
 app.use("/api/NavMenu/NewProducts",         NewProducts);
 app.use("/api/NavMenu/BestProductCollection",     BestProductCollection);
 
-app.use("/api/Blog", postsRoutes);
-app.use("/api/Blog", PostCardData);
-app.use("/api/Blog", PostCardDataByCategorie);
+app.use("/api/blog", postsRoutes);
+app.use("/api/blog", PostCardData);
+app.use("/api/blog", PostCardDataByCategorie);
 
 app.use("/api/client/order",  getOrderByRef);
 app.use("/api/client/order",  postOrderClient);

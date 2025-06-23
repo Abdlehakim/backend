@@ -12,7 +12,7 @@ router.get('/getPostbyslug/:id', async (req: Request, res: Response): Promise<vo
     // Validate the slug parameter
     if (!Postbyslug || typeof Postbyslug !== 'string') {
       res.status(404).json("Post name is required and should exist");
-      return; // Stop here so no second response is sent
+      return;
     }
 
     await PostCategorie.find();

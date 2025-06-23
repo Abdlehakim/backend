@@ -15,18 +15,20 @@ const router = Router();
  * PUT /api/dashboardadmin/website/banners/updateBanners/:id
  * ---------------------------------------------------------
  * Updates any of the text fields (titles) and/or replaces one or more
- * images (Best-Collection, Promotion, New-Products) for the singleton
+ * images (Best-Collection, Promotion, New-Products, Blog) for the singleton
  * SpecialPageBanner document.
  *
  * Multipart uploads (optional):
  *   • BCbanner            (maxCount: 1)
  *   • PromotionBanner     (maxCount: 1)
  *   • NPBanner            (maxCount: 1)
+ *   • BlogBanner          (maxCount: 1)
  *
  * Body (all optional — only include what you want to change):
  *   • BCbannerTitle
  *   • PromotionBannerTitle
  *   • NPBannerTitle
+ *   • BlogBannerTitle
  */
 router.put(
   "/updateBanners/:id",
@@ -35,6 +37,7 @@ router.put(
     { name: "BCbanner", maxCount: 1 },
     { name: "PromotionBanner", maxCount: 1 },
     { name: "NPBanner", maxCount: 1 },
+    { name: "BlogBanner", maxCount: 1 },
   ]),
   async (req: Request, res: Response): Promise<void> => {
     const { id } = req.params;
@@ -53,13 +56,14 @@ router.put(
       }
 
       /* ------------------------------------------------------------------ */
-      /* Prepare update payload                                             */
+      /* Prepare update payload                                            */
       /* ------------------------------------------------------------------ */
       const updateData: Partial<ISpecialPageBanner> = {};
       const {
         BCbannerTitle,
         PromotionBannerTitle,
         NPBannerTitle,
+        BlogBannerTitle,
       } = req.body as Record<string, string | undefined>;
 
       if (BCbannerTitle !== undefined) {
@@ -91,6 +95,16 @@ router.put(
           return;
         }
         updateData.NPBannerTitle = NPBannerTitle.trim();
+      }
+
+      if (BlogBannerTitle !== undefined) {
+        if (!BlogBannerTitle.trim()) {
+          res
+            .status(400)
+            .json({ success: false, message: "BlogBannerTitle cannot be empty." });
+          return;
+        }
+        updateData.BlogBannerTitle = BlogBannerTitle.trim();
       }
 
       /* ------------------------------------------------------------------ */
@@ -147,6 +161,23 @@ router.put(
         );
         updateData.NPBannerImgUrl = secureUrl;
         updateData.NPBannerImgId = publicId;
+      }
+
+      /* ----------------- Blog banner ----------------- */
+      if (files.BlogBanner?.[0]) {
+        if (existing.BlogBannerImgId) {
+          try {
+            await cloudinary.uploader.destroy(existing.BlogBannerImgId);
+          } catch (err) {
+            console.error("Cloudinary BlogBanner deletion error:", err);
+          }
+        }
+        const { secureUrl, publicId } = await uploadToCloudinary(
+          files.BlogBanner[0],
+          "banners"
+        );
+        updateData.BlogBannerImgUrl = secureUrl;
+        updateData.BlogBannerImgId = publicId;
       }
 
       /* ------------------------------------------------------------------ */

@@ -10,13 +10,14 @@ const JWT_SECRET = process.env.JWT_SECRET!;
 if (!JWT_SECRET) throw new Error("Missing JWT_SECRET env variable");
 
 const isProd = process.env.NODE_ENV === "production";
+const COOKIE_DOMAIN = isProd ? ".soukelmeuble.tn" : undefined;
 
 export const COOKIE_OPTS = {
-  httpOnly : true,
-  secure   : isProd,                      // ⬅️ Secure=True on Render
-  sameSite : isProd ? ("none" as const)   // ⬅️ cross-site cookie
-                     : ("lax"  as const), // dev = easiest local testing
-  path     : "/",
+  httpOnly: true,
+  secure:   isProd,                       // only send over HTTPS in prod
+  sameSite: isProd ? "none" : "lax",      // cross-site allowed in prod
+  path:     "/",
+  ...(COOKIE_DOMAIN && { domain: COOKIE_DOMAIN }), 
 } as const;
 
 interface TokenRole   { name: string; permissions: string[] }

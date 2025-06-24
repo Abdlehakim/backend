@@ -1,20 +1,11 @@
-/* ------------------------------------------------------------------
-   routes/dashboardAuth.ts
------------------------------------------------------------------- */
+// src/routes/dashboardadmin/users/dashboardAuth.ts
+
 import { Router, RequestHandler } from "express";
 import jwt from "jsonwebtoken";
 import DashboardUser from "@/models/dashboardadmin/DashboardUser";
+import { COOKIE_OPTS } from "@/app";      // pull in the shared cookie options
 
 const router = Router();
-
-/* ---------- Cookie flags shared by set & clear ---------- */
-export const COOKIE_OPTS = {
-  httpOnly: true,
-  path: "/",
-  secure: process.env.NODE_ENV === "production",
-  sameSite: process.env.NODE_ENV === "production" ? ("none" as const) : ("lax" as const),
-  // domain: process.env.COOKIE_DOMAIN   // uncomment if you use a parent domain
-} as const;
 
 /* ---------- JWT secret ---------- */
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -28,7 +19,7 @@ interface DecodedToken {
 }
 
 /* =============================================================
-   GET /dashboardauth/me
+   GET /dashboardAuth/me
    =========================================================== */
 const getMe: RequestHandler = async (req, res) => {
   try {
@@ -75,22 +66,30 @@ const getMe: RequestHandler = async (req, res) => {
     });
 
     res.json({ user });
+    return;
   } catch (err) {
     console.error("Dashboard auth error:", err);
-    res.status(500).json({ message: "Internal server error" });
+    res
+      .status(500)
+      .json({ message: "Internal server error" });
+    return;
   }
 };
 
 /* =============================================================
-   POST /dashboardauth/logout
+   POST /dashboardAuth/logout
    =========================================================== */
 const logout: RequestHandler = async (_req, res) => {
   try {
     res.clearCookie("token_FrontEndAdmin", COOKIE_OPTS);
     res.json({ message: "Logged out successfully" });
+    return;
   } catch (err) {
     console.error("Logout error:", err);
-    res.status(500).json({ message: "Internal server error" });
+    res
+      .status(500)
+      .json({ message: "Internal server error" });
+    return;
   }
 };
 

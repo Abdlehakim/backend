@@ -97,6 +97,7 @@ import ProductReviews     from "./routes/products/ProductReviews";
 import postsRoutes            from "./routes/blog/postsRoutes";
 import PostCardData           from "./routes/blog/PostCardData";
 import PostCardDataByCategorie from "./routes/blog/PostCardDataByCategorie";
+import getAllPostCardData  from "./routes/website/blog/getAllpostCardData";
 
 /* ---------- Client orders / address ---------- */
 import getOrderByRef        from "./routes/client/order/getOrderByRef";
@@ -228,6 +229,7 @@ app.use("/api/NavMenu/BestProductCollection",     BestProductCollection);
 app.use("/api/blog", postsRoutes);
 app.use("/api/blog", PostCardData);
 app.use("/api/blog", PostCardDataByCategorie);
+app.use("/api/blog/PostCardData", getAllPostCardData);
 
 app.use("/api/client/order",  getOrderByRef);
 app.use("/api/client/order",  postOrderClient);

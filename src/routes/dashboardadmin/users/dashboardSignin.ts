@@ -1,29 +1,21 @@
 // src/routes/dashboardadmin/users/dashboardSignin.ts
 import { Router, Request, Response } from "express";
 import jwt from "jsonwebtoken";
-import DashboardUser, { IDashboardUser } from "@/models/dashboardadmin/DashboardUser";
-import DashboardRole, { IDashboardRole } from "@/models/dashboardadmin/DashboardRole";
-import { COOKIE_OPTS } from "@/app";
+import DashboardUser from "@/models/dashboardadmin/DashboardUser";
+import { IDashboardRole } from "@/models/dashboardadmin/DashboardRole";
+import { COOKIE_OPTS, isProd } from "@/app";
 
 const router = Router();
 
-// Environment variable check
+// Ensure JWT_SECRET is present
 const JWT_SECRET = process.env.JWT_SECRET!;
 if (!JWT_SECRET) throw new Error("Missing JWT_SECRET env variable");
 
-interface TokenRole {
-  name: string;
-  permissions: string[];
-}
+interface TokenRole { name: string; permissions: string[]; }
+interface TokenPayload { id: string; email: string; role: TokenRole; }
 
-interface TokenPayload {
-  id: string;
-  email: string;
-  role: TokenRole;
-}
-
-const signToken = (payload: TokenPayload) =>
-  jwt.sign(payload, JWT_SECRET, { expiresIn: '1h' });
+const signToken = (payload: TokenPayload): string =>
+  jwt.sign(payload, JWT_SECRET, { expiresIn: "1h" });
 
 // POST /api/signindashboardadmin
 router.post('/', async (req: Request, res: Response): Promise<void> => {
@@ -46,21 +38,27 @@ router.post('/', async (req: Request, res: Response): Promise<void> => {
     }
 
     const roleObj: TokenRole = {
-      name: user.role?.name ?? '—',
-      permissions: Array.isArray(user.role?.permissions) ? user.role.permissions : [],
+      name: user.role.name,
+      permissions: Array.isArray(user.role.permissions)
+        ? user.role.permissions
+        : [],
     };
 
-    // Sign JWT and set cookie
+    // Sign JWT
     const token = signToken({
       id: user._id.toString(),
       email: user.email,
       role: roleObj,
     });
 
-    res.cookie('token_FrontEndAdmin', token, {
-      ...COOKIE_OPTS,
-      maxAge: 60 * 60 * 1000, // 1 hour
-    });
+    // Build cookie options, stripping domain in development
+    const cookieOptions = { ...COOKIE_OPTS, maxAge: 1000 * 60 * 60 };
+    if (!isProd) {
+      // remove domain flag so host-only cookie works on localhost
+      delete (cookieOptions as any).domain;
+    }
+
+    res.cookie('token_FrontEndAdmin', token, cookieOptions);
 
     res.json({
       user: {

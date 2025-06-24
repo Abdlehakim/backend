@@ -19,7 +19,7 @@ router.get('/getPostbyslug/:id', async (req: Request, res: Response): Promise<vo
 
     // Find the post with the given slug
     const Posts = await PostMainSection.findOne({ slug: Postbyslug, vadmin: "approve" })
-      .populate('postcategorie', 'name vadmin slug createdAt')
+      .populate('postCategorie', 'name vadmin slug createdAt')
       .exec();
 
     if (!Posts) {

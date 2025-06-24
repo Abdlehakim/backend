@@ -10,7 +10,7 @@ router.get('/PostCardData', async (req: Request, res: Response): Promise<void> =
     try {
       await PostCategorie.find({});
       const Posts = await PostMainSection.find({ vadmin: 'approve' }).select("title description imageUrl slug createdAt")
-        .populate('postcategorie','name vadmin slug ')
+        .populate('postCategorie','name vadmin slug ')
         .exec();
       res.status(200).json(Posts);
     } catch (err) {

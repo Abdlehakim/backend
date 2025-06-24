@@ -31,7 +31,7 @@ router.get('/PostCardDataByCategorie/:id', async (req: Request, res: Response): 
       vadmin: "approve",
     })
       .select("title description imageUrl slug createdAt")
-      .populate("postcategorie", "slug")
+      .populate("postCategorie", "slug")
       .exec();
 
     // Respond with the array of posts

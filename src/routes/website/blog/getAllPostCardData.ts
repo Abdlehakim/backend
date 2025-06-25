@@ -1,8 +1,8 @@
 // src/routes/website/blog/getAllPostCardData.ts
 import { Router, Request, Response } from 'express';
 import Post from '@/models/blog/Post';
-import '@/models/blog/PostCategorie';       // Ensure PostCategorie is registered
-import '@/models/blog/PostSubCategorie';    // Ensure PostSubCategorie is registered
+import '@/models/blog/PostCategorie';   
+import '@/models/blog/PostSubCategorie';   
 
 const router = Router();
 

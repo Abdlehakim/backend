@@ -98,6 +98,13 @@ import postsRoutes            from "./routes/blog/postsRoutes";
 import PostCardData           from "./routes/blog/PostCardData";
 import PostCardDataByCategorie from "./routes/blog/PostCardDataByCategorie";
 import getAllPostCardData from "./routes/website/blog/getAllPostCardData"
+import getAllPostCardByCategorie from "./routes/website/blog/getAllPostCardByCategorie"
+import getAllPostCardBySubCategorie from "./routes/website/blog/getAllPostCardBySubCategorie"
+import getPostDataBySlug from "./routes/website/blog/getPostDataBySlug"
+import getSimilarPostBySlug from "./routes/website/blog/getSimilarPostBySlug"
+import postCategories from "./routes/website/blog/postCategories"
+
+
 
 /* ---------- Client orders / address ---------- */
 import getOrderByRef        from "./routes/client/order/getOrderByRef";
@@ -230,6 +237,11 @@ app.use("/api/blog", postsRoutes);
 app.use("/api/blog", PostCardData);
 app.use("/api/blog", PostCardDataByCategorie);
 app.use("/api/blog/getAllPostCardData", getAllPostCardData);
+app.use("/api/blog", getAllPostCardByCategorie);
+app.use("/api/blog", getAllPostCardBySubCategorie);
+app.use("/api/blog", getPostDataBySlug);
+app.use("/api/blog", getSimilarPostBySlug);
+app.use("/api/blog", postCategories);
 
 app.use("/api/client/order",  getOrderByRef);
 app.use("/api/client/order",  postOrderClient);

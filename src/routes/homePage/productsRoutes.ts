@@ -60,6 +60,8 @@ router.get(
         vadmin: "approve",
         statuspage: "promotion",
       })
+      .sort({ createdAt: -1 })           
+        .limit(8) 
         .select(
           "_id name price mainImageUrl slug stockStatus discount reference"
         )
@@ -102,6 +104,8 @@ router.get(
         vadmin: "approve",
         statuspage: "best-collection",
       })
+      .sort({ createdAt: -1 })           
+        .limit(8) 
         .select(
           "_id name price mainImageUrl slug stockStatus discount reference"
         )

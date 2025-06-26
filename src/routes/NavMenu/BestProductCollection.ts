@@ -32,7 +32,7 @@ router.get("/getBestProductBannerData", async (req: Request, res: Response) => {
   try {
     const getBestProductBannerData = await specialPageBanner
       .findOne()
-      .select("BlogBannerImgUrl BlogBannerTitle")
+      .select("BCbannerTitle BCbannerImgUrl")
       .lean();
     res.json(getBestProductBannerData);
   } catch (err) {

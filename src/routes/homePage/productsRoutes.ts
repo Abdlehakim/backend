@@ -10,17 +10,19 @@ router.get(
   "/NewProductsCollectionHomePage",
   async (req: Request, res: Response): Promise<void> => {
     try {
-      const productsCollectionHomePage = await Product.find({
+      const latestNewProducts = await Product.find({
         vadmin: "approve",
         statuspage: "New-Products",
       })
+        .sort({ createdAt: -1 })           
+        .limit(8)                           
         .select(
           "_id name price mainImageUrl slug stockStatus discount reference"
         )
         .populate("categorie", "name slug")
         .lean();
 
-      const result = productsCollectionHomePage.map((item: any) => ({
+      const result = latestNewProducts.map((item: any) => ({
         _id: item._id.toString(),
         name: item.name,
         price: item.price,
@@ -38,13 +40,14 @@ router.get(
 
       res.json(result);
     } catch (err) {
-      console.error(err);
+      console.error("NewProductsCollectionHomePage Error:", err);
       res
         .status(500)
-        .json({ error: "Error fetching productsCollectionHomePage" });
+        .json({ error: "Error fetching latest New-Products collection" });
     }
   }
 );
+
 
 
 // GET /api/products/productsCollectionPromotion

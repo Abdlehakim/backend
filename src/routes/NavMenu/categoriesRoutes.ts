@@ -9,39 +9,53 @@ const router = Router();
 // GET /api/categories
 router.get('/', async (req: Request, res: Response) => {
   try {
-    // Fetch approved categories
-   const cats = await Categorie.find({ vadmin: 'approve' })
-      .select('_id reference name slug imageUrl iconUrl bannerUrl vadmin createdBy updatedBy createdAt updatedAt')
-      .populate('productCount')
-      .lean();
+    // Parse pagination parameters (default: no pagination)
+    const limit = parseInt(req.query.limit as string, 10) || 0;
+    const skip  = parseInt(req.query.skip  as string, 10) || 0;
 
-    // For each category, manually fetch its approved subcategories
-    const result = await Promise.all(
-      cats.map(async (cat: any) => {
-        const subs = await SubCategorie.find({
-          categorie: cat._id,
-          vadmin: 'approve',
-        })
-          .select('_id name slug bannerUrl iconUrl imageUrl')
-          .lean();
+    // Aggregation pipeline
+    const categories = await Categorie.aggregate([
+      // 1️⃣ Only approved categories
+      { $match: { vadmin: 'approve' } },
 
-        return {
-          _id: cat._id.toString(),
-          name: cat.name,
-          slug: cat.slug,
-           iconUrl:     cat.iconUrl   || null,
-          numberproduct: cat.productCount ?? 0,
-          imageUrl: cat.imageUrl || '/fallback.jpg',
-          subcategories: subs.map((sub: any) => ({
-            _id: sub._id.toString(),
-            name: sub.name,
-            slug: sub.slug,
-          })),
-        };
-      })
-    );
+      // 2️⃣ Apply pagination if provided
+      ...(skip  ? [{ $skip:  skip  }] : []),
+      ...(limit ? [{ $limit: limit }] : []),
 
-    res.json(result);
+      // 3️⃣ Only project the fields we need
+      { $project: {
+          _id:      1,
+          name:     1,
+          slug:     1,
+          iconUrl:  1,
+          imageUrl: 1,
+        }
+      },
+
+      // 4️⃣ Lookup approved subcategories
+      { $lookup: {
+          from: 'subcategories',           // the Mongo collection name
+          let: { catId: '$_id' },
+          pipeline: [
+            { $match: {
+                $expr: {
+                  $and: [
+                    { $eq: ['$categorie', '$$catId'] },
+                    { $eq: ['$vadmin',     'approve'] },
+                  ]
+                }
+            }},
+            { $project: { _id:1, name:1, slug:1 } }
+          ],
+          as: 'subcategories'
+        }
+      },
+
+      // 5️⃣ Convert ObjectId to string (optional, for client ease)
+      { $addFields: { _id: { $toString: '$_id' } } },
+    ]);
+
+    res.json(categories);
   } catch (err) {
     console.error('Error fetching categories:', err);
     res.status(500).json({ error: 'Error fetching categories' });

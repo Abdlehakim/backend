@@ -97,17 +97,27 @@ router.get(
   }
 );
 
-/* GET /api/NavMenu/categorieSubCategoriePage/products/:slug */
+/* GET /api/NavMenu/categorieSubCategoriePage/products/:slug 
+   supports ?limit=8&skip=0 for pagination */
+/* GET /api/NavMenu/categorieSubCategoriePage/products/:slug 
+   supports ?limit=8&skip=0 for pagination,
+   and only returns the needed product fields */
 router.get(
   "/products/:slug",
   async (req: Request, res: Response): Promise<void> => {
     try {
-      const section = await findSectionBySlug(req.params.slug);
+      const { slug } = req.params;
+      const limit = Math.max(1, parseInt(req.query.limit as string, 10) || 8);
+      const skip = Math.max(0, parseInt(req.query.skip as string, 10) || 0);
+
+      // 1) find the category or subcategory by slug
+      const section = await findSectionBySlug(slug);
       if (!section) {
         res.status(404).json({ error: "Category or subcategory not found" });
         return;
       }
 
+      // 2) query only the window we need, and only the needed fields
       const products = await Product.find({
         $or: [
           { categorie: section._id },
@@ -115,11 +125,24 @@ router.get(
         ],
         vadmin: "approve",
       })
-        .lean()
+        .skip(skip)
+        .limit(limit)
+        .select([
+          "_id",
+          "name",
+          "slug",
+          "price",
+          "discount",
+          "stockStatus",
+          "mainImageUrl",
+          "reference",
+          // add any other top-level fields your UI needs here
+        ].join(" "))
         .populate("categorie", "name slug")
         .populate("subcategorie", "name slug")
         .populate("brand", "name")
         .populate("boutique", "name")
+        .lean()
         .exec();
 
       res.json(products);

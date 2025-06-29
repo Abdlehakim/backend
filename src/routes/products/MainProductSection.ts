@@ -5,6 +5,25 @@ import ProductAttribute from "@/models/stock/ProductAttribute";
 
 const router = Router();
 
+
+router.get("/allProductSlugs", async (_req, res) => {
+  try {
+    const [prod] = await Promise.all([
+      Product.find({ vadmin: "approve" }).select("slug -_id").lean<{ slug: string }[]>(),
+    ]);
+
+    // dedupe in case a slug exists in both collections (unlikely but safe)
+    const allProductSlugs = Array.from(
+      new Set([...prod].map((d) => d.slug))
+    );
+
+    res.json(allProductSlugs);
+  } catch (err) {
+    console.error("Error fetching slugs:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 // GET /api/products/MainProductSection/:slugProduct
 router.get(
   "/:slugProduct",

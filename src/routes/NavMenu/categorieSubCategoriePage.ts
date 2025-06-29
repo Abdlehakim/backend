@@ -1,59 +1,78 @@
-// src/routes/NavMenu/categorieSubCategoriePage.ts
-import { Router, Request, Response } from "express";
-import Categorie      from "@/models/stock/Categorie";
-import Subcategorie   from "@/models/stock/SubCategorie";
-import Product        from "@/models/stock/Product";
-import Brand          from "@/models/stock/Brand";
-import Boutique       from "@/models/stock/Boutique";
-import { Types }      from "mongoose";
+/* ------------------------------------------------------------------ */
+/*  src/routes/NavMenu/categorieSubCategoriePage.ts                   */
+/*  (FULL FILE — now includes /allSlugs endpoint)                     */
+/* ------------------------------------------------------------------ */
+import { Router } from "express";
+import { Types }  from "mongoose";
+
+import Categorie    from "@/models/stock/Categorie";
+import Subcategorie from "@/models/stock/SubCategorie";
+import Product      from "@/models/stock/Product";
+import Brand        from "@/models/stock/Brand";
+import Boutique     from "@/models/stock/Boutique";
 
 const router = Router();
 
 /* ------------------------------------------------------------------ */
-/*  helper — locate either a catégorie or a sub-cat by its slug        */
+/*  helper — locate either a catégorie or a sub-cat by its slug       */
 /* ------------------------------------------------------------------ */
-async function findSectionBySlug(
-  slug: string
-): Promise<{
-  _id: Types.ObjectId;
-  name: string;
-  slug: string;
-  bannerUrl?: string | null;
-} | null> {
-  const cat = await Categorie.findOne({ slug, vadmin: "approve" })
-    .select("name slug bannerUrl")
-    .lean<{ _id: Types.ObjectId; name: string; slug: string; bannerUrl?: string }>()
-    .exec();
-  if (cat) {
-    return {
-      _id: cat._id,
-      name: cat.name,
-      slug: cat.slug,
-      bannerUrl: cat.bannerUrl ?? null,
-    };
-  }
+async function findSectionBySlug(slug: string) {
+  const doc = await Subcategorie.aggregate([
+    { $match: { slug, vadmin: "approve" } },
+    {
+      $lookup: {
+        from: "categories",
+        localField: "categorie",
+        foreignField: "_id",
+        pipeline: [{ $project: { bannerUrl: 1 } }],
+        as: "parent",
+      },
+    },
+    { $unwind: { path: "$parent", preserveNullAndEmptyArrays: true } },
+    {
+      $project: {
+        _id: 1,
+        name: 1,
+        slug: 1,
+        bannerUrl: "$parent.bannerUrl",
+      },
+    },
+    { $limit: 1 },
+  ]);
 
-  const sub = await Subcategorie.findOne({ slug, vadmin: "approve" })
-    .select("name slug categorie")
-    .lean<{ _id: Types.ObjectId; name: string; slug: string; categorie: Types.ObjectId }>()
-    .exec();
-  if (!sub) return null;
+  if (doc.length) return doc[0];
 
-  const parent = await Categorie.findById(sub.categorie)
-    .select("bannerUrl")
-    .lean<{ bannerUrl?: string }>()
-    .exec();
-
-  return {
-    _id: sub._id,
-    name: sub.name,
-    slug: sub.slug,
-    bannerUrl: parent?.bannerUrl ?? null,
-  };
+  // fallback → catégorie
+  return Categorie.findOne({ slug, vadmin: "approve" })
+    .select("_id name slug bannerUrl")
+    .lean();
 }
 
 /* ------------------------------------------------------------------ */
-/*  GET /api/NavMenu/categorieSubCategoriePage/:slug                   */
+/*  NEW:  GET /api/NavMenu/categorieSubCategoriePage/allSlugs         */
+/*  Returns a flat array of every approved catégorie & sub-cat slug   */
+/* ------------------------------------------------------------------ */
+router.get("/allSlugs", async (_req, res) => {
+  try {
+    const [cats, subs] = await Promise.all([
+      Categorie.find({ vadmin: "approve" }).select("slug -_id").lean<{ slug: string }[]>(),
+      Subcategorie.find({ vadmin: "approve" }).select("slug -_id").lean<{ slug: string }[]>(),
+    ]);
+
+    // dedupe in case a slug exists in both collections (unlikely but safe)
+    const allSlugs = Array.from(
+      new Set([...cats, ...subs].map((d) => d.slug))
+    );
+
+    res.json(allSlugs);
+  } catch (err) {
+    console.error("Error fetching slugs:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+/* ------------------------------------------------------------------ */
+/*  GET /api/NavMenu/categorieSubCategoriePage/:slug                  */
 /* ------------------------------------------------------------------ */
 router.get("/:slug", async (req, res) => {
   try {
@@ -70,7 +89,7 @@ router.get("/:slug", async (req, res) => {
 });
 
 /* ------------------------------------------------------------------ */
-/*  GET /api/NavMenu/categorieSubCategoriePage/categorie/:categorieId  */
+/*  GET /api/NavMenu/categorieSubCategoriePage/categorie/:categorieId */
 /* ------------------------------------------------------------------ */
 router.get("/categorie/:categorieId", async (req, res) => {
   try {
@@ -90,8 +109,8 @@ router.get("/categorie/:categorieId", async (req, res) => {
 });
 
 /* ------------------------------------------------------------------ */
-/*  GET /api/NavMenu/categorieSubCategoriePage/products/:slug          */
-/*       filters + pagination + effective price (price - %discount)    */
+/*  GET /api/NavMenu/categorieSubCategoriePage/products/:slug         */
+/*  filters + pagination + effective price (price - %discount)        */
 /* ------------------------------------------------------------------ */
 router.get("/products/:slug", async (req, res) => {
   try {
@@ -132,9 +151,7 @@ router.get("/products/:slug", async (req, res) => {
           effectivePrice: {
             $subtract: [
               "$price",
-              {
-                $multiply: ["$price", { $divide: ["$discount", 100] }],
-              },
+              { $multiply: ["$price", { $divide: ["$discount", 100] }] },
             ],
           },
         },
@@ -168,14 +185,14 @@ router.get("/products/:slug", async (req, res) => {
           boutique: 1,
         },
       },
-      { $lookup: { from: "categories",  localField: "categorie",   foreignField: "_id", as: "categorie" } },
-      { $unwind: { path: "$categorie",  preserveNullAndEmptyArrays: true } },
-      { $lookup: { from: "subcategories", localField: "subcategorie", foreignField: "_id", as: "subcategorie" } },
-      { $unwind: { path: "$subcategorie", preserveNullAndEmptyArrays: true } },
-      { $lookup: { from: "brands",      localField: "brand",      foreignField: "_id", as: "brand" } },
-      { $unwind: { path: "$brand",      preserveNullAndEmptyArrays: true } },
-      { $lookup: { from: "boutiques",   localField: "boutique",   foreignField: "_id", as: "boutique" } },
-      { $unwind: { path: "$boutique",   preserveNullAndEmptyArrays: true } }
+      { $lookup: { from: "categories",    localField: "categorie",   foreignField: "_id", as: "categorie"   } },
+      { $unwind:  { path: "$categorie",   preserveNullAndEmptyArrays: true } },
+      { $lookup: { from: "subcategories", localField: "subcategorie", foreignField: "_id", as: "subcategorie"} },
+      { $unwind:  { path: "$subcategorie", preserveNullAndEmptyArrays: true } },
+      { $lookup: { from: "brands",        localField: "brand",      foreignField: "_id", as: "brand"        } },
+      { $unwind:  { path: "$brand",        preserveNullAndEmptyArrays: true } },
+      { $lookup: { from: "boutiques",     localField: "boutique",   foreignField: "_id", as: "boutique"     } },
+      { $unwind:  { path: "$boutique",     preserveNullAndEmptyArrays: true } }
     );
 
     const products = await Product.aggregate(pipeline).exec();
@@ -187,7 +204,7 @@ router.get("/products/:slug", async (req, res) => {
 });
 
 /* ------------------------------------------------------------------ */
-/*  GET /api/NavMenu/categorieSubCategoriePage/products/:slug/options  */
+/*  GET /api/NavMenu/categorieSubCategoriePage/products/:slug/options */
 /* ------------------------------------------------------------------ */
 router.get("/products/:slug/options", async (req, res) => {
   try {

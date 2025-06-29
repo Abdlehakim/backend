@@ -159,9 +159,44 @@ router.get("/products/:slug", async (req, res) => {
           },
         },
       },
-      /* … range filter, sort, skip, limit, $lookups, etc. … */
     ];
+    
+    if (priceMin || priceMax) {
+      const range: any = {};
+      if (priceMin) range.$gte = Number(priceMin);
+      if (priceMax) range.$lte = Number(priceMax);
+      pipeline.push({ $match: { effectivePrice: range } });
+    }
 
+    pipeline.push(
+      { $sort: { effectivePrice: sort === "desc" ? -1 : 1 } },
+      { $skip: skip },
+      { $limit: limit },
+      {
+        $project: {
+          _id: 1,
+          name: 1,
+          slug: 1,
+          price: 1,
+          discount: 1,
+          stockStatus: 1,
+          mainImageUrl: 1,
+          reference: 1,
+          categorie: 1,
+          subcategorie: 1,
+          brand: 1,
+          boutique: 1,
+        },
+      },
+      { $lookup: { from: "categories",  localField: "categorie",   foreignField: "_id", as: "categorie" } },
+      { $unwind: { path: "$categorie",  preserveNullAndEmptyArrays: true } },
+      { $lookup: { from: "subcategories", localField: "subcategorie", foreignField: "_id", as: "subcategorie" } },
+      { $unwind: { path: "$subcategorie", preserveNullAndEmptyArrays: true } },
+      { $lookup: { from: "brands",      localField: "brand",      foreignField: "_id", as: "brand" } },
+      { $unwind: { path: "$brand",      preserveNullAndEmptyArrays: true } },
+      { $lookup: { from: "boutiques",   localField: "boutique",   foreignField: "_id", as: "boutique" } },
+      { $unwind: { path: "$boutique",   preserveNullAndEmptyArrays: true } }
+    );
     const products = await Product.aggregate(pipeline).exec();
     res.json(products);
   } catch (err) {

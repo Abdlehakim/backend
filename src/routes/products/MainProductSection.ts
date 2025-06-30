@@ -8,8 +8,7 @@ import ProductAttribute  from "@/models/stock/ProductAttribute";
 const router = Router();
 
 /* ================================================================== */
-/*  1)  GET /api/products/MainProductSection/allProductSlugs          */
-/*      (unchanged)                                                   */
+/*  GET /api/products/MainProductSection/allProductSlugs              */
 /* ================================================================== */
 router.get("/allProductSlugs", async (_req, res) => {
   try {
@@ -17,7 +16,7 @@ router.get("/allProductSlugs", async (_req, res) => {
       .select("slug -_id")
       .lean<{ slug: string }[]>();
 
-    res.json(slugs.map((d) => d.slug)); // ["iphone-15", "sofa-x", …]
+    res.json(slugs.map((d) => d.slug));
   } catch (err) {
     console.error("Error fetching slugs:", err);
     res.status(500).json({ error: "Internal server error" });
@@ -25,34 +24,8 @@ router.get("/allProductSlugs", async (_req, res) => {
 });
 
 /* ================================================================== */
-/*  2)  GET /api/products/lite/:slugProduct                           */
-/*      → lightweight stub for ONE product                            */
-/* ================================================================== */
-router.get("/lite/:slugProduct", async (req: Request, res: Response) => {
-  try {
-    const prod = await Product.findOne({
-      slug: req.params.slugProduct,
-      vadmin: "approve",
-    })
-      .select(
-        "_id slug name reference price discount stock mainImageUrl"
-      )
-      .lean();
-
-    if (!prod) {
-      res.status(404).json({ error: "Product not found" });
-      return;
-    }
-    res.json(prod);
-  } catch (err) {
-    console.error("Error fetching lite product:", err);
-    res.status(500).json({ error: "Internal server error" });
-  }
-});
-
-/* ================================================================== */
-/*  3)  GET /api/products/MainProductSection/:slugProduct             */
-/*      Heavy PDP data (unchanged)                                    */
+/*  GET /api/products/MainProductSection/:slugProduct                 */
+/*  Heavy PDP data — now returns *all* fields                         */
 /* ================================================================== */
 router.get("/:slugProduct", async (req: Request, res: Response) => {
   try {
@@ -60,12 +33,6 @@ router.get("/:slugProduct", async (req: Request, res: Response) => {
       slug: req.params.slugProduct,
       vadmin: "approve",
     })
-      .select(
-        "name reference price tva discount stock slug mainImageUrl " +
-          "extraImagesUrl info description nbreview averageRating " +
-          "stockStatus statuspage vadmin categorie brand boutique " +
-          "attributes productDetails"
-      )
       .populate("categorie", "name slug")
       .populate("brand", "name")
       .populate("boutique", "name")

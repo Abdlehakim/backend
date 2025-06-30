@@ -14,12 +14,13 @@ router.get(
         vadmin: "approve",
         statuspage: "New-Products",
       })
-        .sort({ createdAt: -1 })           
-        .limit(8)                           
+        .sort({ createdAt: -1 })
+        .limit(8)
         .select(
           "_id name price mainImageUrl slug stockStatus discount reference"
         )
         .populate("categorie", "name slug")
+        .populate("subcategorie", "name slug")
         .lean();
 
       const result = latestNewProducts.map((item: any) => ({
@@ -31,11 +32,20 @@ router.get(
         status: item.stockStatus,
         discount: item.discount,
         reference: item.reference,
-        categorie: {
-          _id: item.categorie._id.toString(),
-          name: item.categorie.name,
-          slug: item.categorie.slug,
-        },
+        categorie: item.categorie
+          ? {
+              _id: item.categorie._id.toString(),
+              name: item.categorie.name,
+              slug: item.categorie.slug,
+            }
+          : null,
+        subcategorie: item.subcategorie
+          ? {
+              _id: item.subcategorie._id.toString(),
+              name: item.subcategorie.name,
+              slug: item.subcategorie.slug,
+            }
+          : null,
       }));
 
       res.json(result);
@@ -48,27 +58,24 @@ router.get(
   }
 );
 
-
-
 // GET /api/products/productsCollectionPromotion
 router.get(
   "/productsCollectionPromotion",
   async (req: Request, res: Response): Promise<void> => {
     try {
-      // Only select the needed fields from the Product document.
       const productsCollectionPromotion = await Product.find({
         vadmin: "approve",
         statuspage: "promotion",
       })
-      .sort({ createdAt: -1 })           
-        .limit(8) 
+        .sort({ createdAt: -1 })
+        .limit(8)
         .select(
           "_id name price mainImageUrl slug stockStatus discount reference"
         )
         .populate("categorie", "name slug")
+        .populate("subcategorie", "name slug")
         .lean();
 
-      // Convert _id to string and set fallback for imageUrl
       const result = productsCollectionPromotion.map((item: any) => ({
         _id: item._id.toString(),
         name: item.name,
@@ -78,16 +85,25 @@ router.get(
         status: item.stockStatus,
         discount: item.discount,
         reference: item.reference,
-        categorie: {
-          _id: item.categorie._id.toString(),
-          name: item.categorie.name,
-          slug: item.categorie.slug,
-        },
+        categorie: item.categorie
+          ? {
+              _id: item.categorie._id.toString(),
+              name: item.categorie.name,
+              slug: item.categorie.slug,
+            }
+          : null,
+        subcategorie: item.subcategorie
+          ? {
+              _id: item.subcategorie._id.toString(),
+              name: item.subcategorie.name,
+              slug: item.subcategorie.slug,
+            }
+          : null,
       }));
 
       res.json(result);
     } catch (err) {
-      console.error(err);
+      console.error("productsCollectionPromotion Error:", err);
       res
         .status(500)
         .json({ error: "Error fetching productsCollectionPromotion" });
@@ -104,15 +120,15 @@ router.get(
         vadmin: "approve",
         statuspage: "best-collection",
       })
-      .sort({ createdAt: -1 })           
-        .limit(8) 
+        .sort({ createdAt: -1 })
+        .limit(8)
         .select(
           "_id name price mainImageUrl slug stockStatus discount reference"
         )
         .populate("categorie", "name slug")
+        .populate("subcategorie", "name slug")
         .lean();
 
-      // Convert _id to string and set fallback for imageUrl
       const result = productsBestCollection.map((item: any) => ({
         _id: item._id.toString(),
         name: item.name,
@@ -122,34 +138,43 @@ router.get(
         status: item.stockStatus,
         discount: item.discount,
         reference: item.reference,
-        categorie: {
-          _id: item.categorie._id.toString(),
-          name: item.categorie.name,
-          slug: item.categorie.slug,
-        },
+        categorie: item.categorie
+          ? {
+              _id: item.categorie._id.toString(),
+              name: item.categorie.name,
+              slug: item.categorie.slug,
+            }
+          : null,
+        subcategorie: item.subcategorie
+          ? {
+              _id: item.subcategorie._id.toString(),
+              name: item.subcategorie.name,
+              slug: item.subcategorie.slug,
+            }
+          : null,
       }));
 
       res.json(result);
     } catch (err) {
-      console.error(err);
-      res.status(500).json({ error: "Error fetching productsBestCollection" });
+      console.error("productsBestCollection Error:", err);
+      res
+        .status(500)
+        .json({ error: "Error fetching productsBestCollection" });
     }
   }
 );
 
-// GET /api/products/ProductCollectionHomePageTitles
-
+// Titles endpoints remain unchanged
 router.get(
   "/ProductCollectionHomePageTitles",
   async (req: Request, res: Response): Promise<void> => {
     try {
-      // Only select the title and subtitle fields
-      const ProductCollectionHomePageTitles = await HomePageData.findOne()
+      const titles = await HomePageData.findOne()
         .select("HPNewProductTitle HPNewProductSubTitle")
         .exec();
-      res.json(ProductCollectionHomePageTitles);
+      res.json(titles);
     } catch (err) {
-      console.error(err);
+      console.error("ProductCollectionHomePageTitles Error:", err);
       res
         .status(500)
         .json({ error: "Error fetching ProductCollectionHomePageTitles" });
@@ -157,19 +182,16 @@ router.get(
   }
 );
 
-// GET /api/products/BestProductHomePageTitles
-
 router.get(
   "/BestProductHomePageTitles",
   async (req: Request, res: Response): Promise<void> => {
     try {
-      // Only select the title and subtitle fields
-      const BestProductHomePageTitles = await HomePageData.findOne()
+      const titles = await HomePageData.findOne()
         .select("HPBestCollectionTitle HPBestCollectionSubTitle")
         .exec();
-      res.json(BestProductHomePageTitles);
+      res.json(titles);
     } catch (err) {
-      console.error(err);
+      console.error("BestProductHomePageTitles Error:", err);
       res
         .status(500)
         .json({ error: "Error fetching BestProductHomePageTitles" });
@@ -177,19 +199,16 @@ router.get(
   }
 );
 
-// GET /api/products/ProductPromotionHomePageTitles
-
 router.get(
   "/ProductPromotionHomePageTitles",
   async (req: Request, res: Response): Promise<void> => {
     try {
-      // Only select the title and subtitle fields
-      const ProductPromotionHomePageTitles = await HomePageData.findOne()
+      const titles = await HomePageData.findOne()
         .select("HPPromotionTitle HPPromotionSubTitle")
         .exec();
-      res.json(ProductPromotionHomePageTitles);
+      res.json(titles);
     } catch (err) {
-      console.error(err);
+      console.error("ProductPromotionHomePageTitles Error:", err);
       res
         .status(500)
         .json({ error: "Error fetching ProductPromotionHomePageTitles" });

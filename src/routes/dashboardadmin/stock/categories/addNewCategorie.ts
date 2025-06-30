@@ -1,6 +1,7 @@
 // routes/dashboardadmin/stock/categories/create.ts
 
 import { Router, Request, Response } from "express";
+import path from "path";
 import Categorie, { ICategorie } from "@/models/stock/Categorie";
 import { requirePermission } from "@/middleware/requireDashboardPermission";
 import { memoryUpload } from "@/lib/multer";
@@ -36,30 +37,54 @@ router.post(
         return;
       }
 
-      // Handle uploads
+      // prepare upload result holders
       let iconUrl: string | undefined, iconId: string | undefined;
       let imageUrl: string | undefined, imageId: string | undefined;
       let bannerUrl: string | undefined, bannerId: string | undefined;
 
       const files = req.files as Record<string, Express.Multer.File[]>;
 
+      // ─── ICON (must be SVG) ────────────────────────────────
       if (files?.icon?.[0]) {
-        const { secureUrl, publicId } = await uploadToCloudinary(files.icon[0], "categories");
+        const iconFile = files.icon[0];
+        const ext = path.extname(iconFile.originalname).toLowerCase();
+
+        if (ext !== ".svg" || iconFile.mimetype !== "image/svg+xml") {
+          res
+            .status(400)
+            .json({ success: false, message: "Icon must be an SVG file." });
+          return;
+        }
+
+        const { secureUrl, publicId } = await uploadToCloudinary(
+          iconFile,
+          "categories"
+        );
         iconUrl = secureUrl;
         iconId = publicId;
       }
+
+      // ─── IMAGE (any image type) ────────────────────────────
       if (files?.image?.[0]) {
-        const { secureUrl, publicId } = await uploadToCloudinary(files.image[0], "categories");
+        const { secureUrl, publicId } = await uploadToCloudinary(
+          files.image[0],
+          "categories"
+        );
         imageUrl = secureUrl;
         imageId = publicId;
       }
+
+      // ─── BANNER (any image type) ───────────────────────────
       if (files?.banner?.[0]) {
-        const { secureUrl, publicId } = await uploadToCloudinary(files.banner[0], "categories");
+        const { secureUrl, publicId } = await uploadToCloudinary(
+          files.banner[0],
+          "categories"
+        );
         bannerUrl = secureUrl;
         bannerId = publicId;
       }
 
-      // Create and save
+      // ─── CREATE DOCUMENT ───────────────────────────────────
       const newCat = await Categorie.create({
         name,
         iconUrl,

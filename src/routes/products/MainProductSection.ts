@@ -1,5 +1,6 @@
-// src/routes/api/products/MainProductSection.ts
 import { Router, Request, Response } from "express";
+import mongoose from "mongoose";
+
 import Product          from "@/models/stock/Product";
 import ProductAttribute from "@/models/stock/ProductAttribute";
 import Categorie        from "@/models/stock/Categorie";
@@ -24,7 +25,7 @@ router.get("/allProductSlugs", async (_req, res) => {
 
 /* ================================================================== */
 /*  GET /api/products/MainProductSection/:slugProduct                 */
-/*  Heavy PDP data — now returns *all* fields                         */
+/*  Heavy PDP data — returns *all* fields                             */
 /* ================================================================== */
 router.get("/:slugProduct", async (req: Request, res: Response) => {
   try {
@@ -50,38 +51,70 @@ router.get("/:slugProduct", async (req: Request, res: Response) => {
   }
 });
 
-/**
- * GET /api/products/MainProductSection/similarById/:id
- * Supports pagination via ?limit=<n>&skip=<n>.
- * Returns approved products whose categorie or subcategorie
- * field equals the given ObjectId.
- */
-router.get("/similarById/:id", async (req: Request, res: Response) => {
-  try {
-    const { id } = req.params;
-    // parse pagination params
-    const limit = Math.max(1, parseInt(req.query.limit as string, 10) || 4);
-    const skip  = Math.max(0, parseInt(req.query.skip  as string, 10) || 0);
-    const excludeSlug = String(req.query.exclude || "");
+/* ================================================================== */
+/*  GET /api/products/MainProductSection/similarById/:id              */
+/*  Returns a NEW random sample on every request                      */
+/*  ?limit=<n>&exclude=<slug>                                         */
+/* ================================================================== */
+router.get(
+  "/similarById/:id",
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { id } = req.params;
 
-    const products = await Product.find({
-      vadmin: "approve" as const,
-      slug: { $ne: excludeSlug },
-      $or: [
-        { categorie: id },
-        { subcategorie: id },
-      ],
-    })
-      .skip(skip)
-      .limit(limit)
-      .select("name slug price discount stock mainImageUrl")
-      .lean();
+      /* ---------- parse query ------------------------------------ */
+      const limitRaw   = parseInt(req.query.limit as string, 10);
+      const limit      = Number.isFinite(limitRaw) && limitRaw > 0 ? limitRaw : 4;
+      const exclude    = String(req.query.exclude || "");
 
-    res.json(products);
-  } catch (err) {
-    console.error("Error fetching similar products by ID:", err);
-    res.status(500).json({ error: "Internal server error" });
+      /* ---------- cast id → ObjectId ----------------------------- */
+      let objId: mongoose.Types.ObjectId;
+      try {
+        objId = new mongoose.Types.ObjectId(id);
+      } catch {
+        res.json([]);               // invalid id → empty set
+        return;
+      }
+
+      /* ---------- aggregation pipeline --------------------------- */
+      const pipeline = [
+        {
+          $match: {
+            vadmin: "approve",
+            ...(exclude && { slug: { $ne: exclude } }),
+            $or: [
+              { categorie:    objId },
+              { subcategorie: objId },
+            ],
+          },
+        },
+        { $sample: { size: limit } },
+        {
+          $project: {
+            _id:          1,
+            name:         1,
+            slug:         1,
+            price:        1,
+            discount:     1,
+            stock:        1,
+            mainImageUrl: 1,
+          },
+        },
+      ];
+
+      const raw  = await Product.aggregate(pipeline);
+      const stamp = Date.now();            // ensure unique keys each call
+      const data = raw.map((p: any, i: number) => ({
+        ...p,
+        _id: `${p._id}-${stamp}-${i}`,
+      }));
+
+      res.json(data);
+    } catch (err) {
+      console.error("Error fetching random similar products:", err);
+      res.status(500).json({ error: "Internal server error" });
+    }
   }
-});
+);
 
 export default router;

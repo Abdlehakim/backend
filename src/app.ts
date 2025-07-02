@@ -180,6 +180,10 @@ import createHomePageData from "./routes/dashboardadmin/website/homepage/createh
 import getHomePageData from "./routes/dashboardadmin/website/homepage/gethomePageData";
 import updateHomePageData from "./routes/dashboardadmin/website/homepage/updatehomePageData";
 
+import createProductPageData from "./routes/dashboardadmin/website/productpage/createProductPageData";
+import getProductPageData    from "./routes/dashboardadmin/website/productpage/getProductPageData";
+import updateProductPageData from "./routes/dashboardadmin/website/productpage/updateProductPageData";
+
 import createCompanyInfo from "./routes/dashboardadmin/website/company-info/createCompanyInfo";
 import getCompanyInfo from "./routes/dashboardadmin/website/company-info/getCompanyInfo";
 import updateCompanyInfo from "./routes/dashboardadmin/website/company-info/updateCompanyInfo";
@@ -323,6 +327,10 @@ app.use("/api/dashboardadmin/stock/boutiques", getBoutiqueById);
 app.use("/api/dashboardadmin/website/homepage", createHomePageData);
 app.use("/api/dashboardadmin/website/homepage", getHomePageData);
 app.use("/api/dashboardadmin/website/homepage", updateHomePageData);
+
+app.use("/api/dashboardadmin/website/productpage", createProductPageData);
+app.use("/api/dashboardadmin/website/productpage", getProductPageData);
+app.use("/api/dashboardadmin/website/productpage", updateProductPageData);
 
 app.use("/api/dashboardadmin/website/company-info", createCompanyInfo);
 app.use("/api/dashboardadmin/website/company-info", getCompanyInfo);

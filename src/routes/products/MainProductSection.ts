@@ -3,9 +3,29 @@ import mongoose from "mongoose";
 
 import Product          from "@/models/stock/Product";
 import ProductAttribute from "@/models/stock/ProductAttribute";
-import Categorie        from "@/models/stock/Categorie";
+import ProductPageData from "@/models/websitedata/productPageData";
+
 
 const router = Router();
+
+
+router.get(
+  '/productPageTitlesData',
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const titles = await ProductPageData.findOne()
+        .select("SPTitle SPSubTitle")
+        .exec();
+
+      res.json(titles);
+    } catch (err) {
+      console.error("productPageTitlesData Error:", err);
+      res
+        .status(500)
+        .json({ error: "Error fetching productPageTitlesData" });
+    }
+  }
+);
 
 /* ================================================================== */
 /*  GET /api/products/MainProductSection/allProductSlugs              */
@@ -116,5 +136,8 @@ router.get(
     }
   }
 );
+
+
+
 
 export default router;

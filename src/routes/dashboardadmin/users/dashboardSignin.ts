@@ -84,7 +84,7 @@ router.post(
       /* ----- common cookie options (5 min) ----- */
       const commonOpts = {
         ...COOKIE_OPTS,
-        maxAge: 5 * 60 * 1000,
+        maxAge:  4 * 60 * 60 * 1000,
         path: "/",
       };
       if (!isProd) delete (commonOpts as any).domain; // localhost fix

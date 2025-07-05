@@ -3,7 +3,7 @@
 import { Router, RequestHandler } from "express";
 import jwt from "jsonwebtoken";
 import DashboardUser from "@/models/dashboardadmin/DashboardUser";
-import { COOKIE_OPTS } from "@/app";      // pull in the shared cookie options
+import { COOKIE_OPTS } from "@/app"; // pull in the shared cookie options
 
 const router = Router();
 
@@ -57,21 +57,19 @@ const getMe: RequestHandler = async (req, res) => {
         role: (user as any).role, // { name, permissions }
       },
       JWT_SECRET,
-      { expiresIn: "1h" }
+      { expiresIn: "5m" } // 5 minutes
     );
 
     res.cookie("token_FrontEndAdmin", newToken, {
       ...COOKIE_OPTS,
-      maxAge: 60 * 60 * 1000,
+      maxAge: 5 * 60 * 1000, // 5 minutes
     });
 
     res.json({ user });
     return;
   } catch (err) {
     console.error("Dashboard auth error:", err);
-    res
-      .status(500)
-      .json({ message: "Internal server error" });
+    res.status(500).json({ message: "Internal server error" });
     return;
   }
 };
@@ -86,9 +84,7 @@ const logout: RequestHandler = async (_req, res) => {
     return;
   } catch (err) {
     console.error("Logout error:", err);
-    res
-      .status(500)
-      .json({ message: "Internal server error" });
+    res.status(500).json({ message: "Internal server error" });
     return;
   }
 };

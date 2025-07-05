@@ -1,9 +1,11 @@
-// src/routes/dashboardadmin/users/dashboardAuth.ts
+/* ------------------------------------------------------------------
+   src/routes/dashboardadmin/users/dashboardAuth.ts
+   ------------------------------------------------------------------ */
 
 import { Router, RequestHandler } from "express";
 import jwt from "jsonwebtoken";
 import DashboardUser from "@/models/dashboardadmin/DashboardUser";
-import { COOKIE_OPTS } from "@/app"; // pull in the shared cookie options
+import { COOKIE_OPTS, isProd } from "@/app";   // shared opts + env helper
 
 const router = Router();
 
@@ -14,8 +16,38 @@ if (!JWT_SECRET) throw new Error("Missing JWT_SECRET env variable");
 interface DecodedToken {
   id: string;
   email: string;
+  role: { name: string; permissions: string[] };
   iat: number;
   exp: number;
+}
+
+/* ---------- helpers ---------- */
+const FIVE_MIN_MS = 5 * 60 * 1000; // 5 minutes
+
+function setAuthCookies(res: Parameters<RequestHandler>[1], token: string) {
+  // decode once to mirror exp (seconds → ms)
+  const { exp } = jwt.decode(token) as { exp: number };
+  const expMs = exp * 1000;
+
+  const common = { ...COOKIE_OPTS, maxAge: FIVE_MIN_MS, path: "/" };
+  if (!isProd) delete (common as any).domain; // localhost
+
+  // ① real JWT – HttpOnly
+  res.cookie("token_FrontEndAdmin", token, {
+    ...common,
+    httpOnly: true,
+  });
+
+  // ② mirror expiry – JS-readable
+  res.cookie("token_FrontEndAdmin_exp", expMs, {
+    ...common,
+    httpOnly: false,
+  });
+}
+
+function clearAuthCookies(res: Parameters<RequestHandler>[1]) {
+  res.clearCookie("token_FrontEndAdmin",     { path: "/" });
+  res.clearCookie("token_FrontEndAdmin_exp", { path: "/" });
 }
 
 /* =============================================================
@@ -33,7 +65,7 @@ const getMe: RequestHandler = async (req, res) => {
     try {
       decoded = jwt.verify(token, JWT_SECRET) as DecodedToken;
     } catch {
-      res.clearCookie("token_FrontEndAdmin", COOKIE_OPTS);
+      clearAuthCookies(res);
       res.json({ user: null });
       return;
     }
@@ -44,12 +76,12 @@ const getMe: RequestHandler = async (req, res) => {
       .lean();
 
     if (!user) {
-      res.clearCookie("token_FrontEndAdmin", COOKIE_OPTS);
+      clearAuthCookies(res);
       res.json({ user: null });
       return;
     }
 
-    // Rotate token so role/permissions stay fresh
+    /* ----- rotate token so role / permissions stay fresh ----- */
     const newToken = jwt.sign(
       {
         id: user._id.toString(),
@@ -57,36 +89,24 @@ const getMe: RequestHandler = async (req, res) => {
         role: (user as any).role, // { name, permissions }
       },
       JWT_SECRET,
-      { expiresIn: "5m" } // 5 minutes
+      { expiresIn: "5m" }
     );
 
-    res.cookie("token_FrontEndAdmin", newToken, {
-      ...COOKIE_OPTS,
-      maxAge: 5 * 60 * 1000, // 5 minutes
-    });
+    setAuthCookies(res, newToken);
 
     res.json({ user });
-    return;
   } catch (err) {
     console.error("Dashboard auth error:", err);
     res.status(500).json({ message: "Internal server error" });
-    return;
   }
 };
 
 /* =============================================================
    POST /dashboardAuth/logout
    =========================================================== */
-const logout: RequestHandler = async (_req, res) => {
-  try {
-    res.clearCookie("token_FrontEndAdmin", COOKIE_OPTS);
-    res.json({ message: "Logged out successfully" });
-    return;
-  } catch (err) {
-    console.error("Logout error:", err);
-    res.status(500).json({ message: "Internal server error" });
-    return;
-  }
+const logout: RequestHandler = (_req, res) => {
+  clearAuthCookies(res);
+  res.json({ message: "Logged out successfully" });
 };
 
 /* ---------- Mount ---------- */

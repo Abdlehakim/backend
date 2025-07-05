@@ -6,12 +6,14 @@ import HomePageData from '@/models/websitedata/homePageData';
 
 const router = Router();
 
-// GET /api/categories
+"// GET /api/categories"
 router.get('/', async (req: Request, res: Response) => {
   try {
-    // Fetch approved categories
-   const cats = await Categorie.find({ vadmin: 'approve' })
+    // Fetch approved categories, limited to 6
+    const cats = await Categorie
+      .find({ vadmin: 'approve' })
       .select('_id reference name slug imageUrl iconUrl bannerUrl')
+      .limit(6)
       .populate('productCount')
       .lean();
 
@@ -29,7 +31,7 @@ router.get('/', async (req: Request, res: Response) => {
           _id: cat._id.toString(),
           name: cat.name,
           slug: cat.slug,
-           iconUrl:     cat.iconUrl   || null,
+          iconUrl: cat.iconUrl || null,
           numberproduct: cat.productCount ?? 0,
           imageUrl: cat.imageUrl || '/fallback.jpg',
           subcategories: subs.map((sub: any) => ({
@@ -47,6 +49,7 @@ router.get('/', async (req: Request, res: Response) => {
     res.status(500).json({ error: 'Error fetching categories' });
   }
 });
+
 
 // GET /api/categories/:id/subcategories
 router.get('/:id/subcategories', async (req: Request, res: Response) => {

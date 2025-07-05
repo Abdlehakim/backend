@@ -98,7 +98,7 @@ router.post(
       /* ② mirror expiry — JS-readable (httpOnly: false) */
       res.cookie("token_FrontEndAdmin_exp", expMs, {
         ...commonOpts,
-        httpOnly: true,
+        httpOnly: false,
       });
 
       /* ----- response ----- */

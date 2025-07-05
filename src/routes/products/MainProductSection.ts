@@ -24,7 +24,7 @@ router.get(
         .status(500)
         .json({ error: "Error fetching productPageTitlesData" });
     }
-  }
+  }  
 );
 
 /* ================================================================== */
@@ -70,6 +70,34 @@ router.get("/:slugProduct", async (req: Request, res: Response) => {
     res.status(500).json({ error: "Error fetching data" });
   }
 });
+
+/* ================================================================== */
+/*  GET /api/products/MainProductSection/prodcutDetails/:slugProduct  */
+/*  Lightweight details — returns description + productDetails only   */
+/* ================================================================== */
+router.get(
+  "/prodcutDetails/:slugProduct",
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const product = await Product.findOne({
+        slug: req.params.slugProduct,
+        vadmin: "approve",
+      })
+        .select("description productDetails -_id")
+        .lean();
+
+      if (!product) {
+        res.status(404).json({ message: "Product not found" });
+        return;
+      }
+
+      res.json(product);
+    } catch (err) {
+      console.error("Error fetching product details:", err);
+      res.status(500).json({ error: "Error fetching data" });
+    }
+  }
+);
 
 /* ================================================================== */
 /*  GET /api/products/MainProductSection/similarById/:id              */

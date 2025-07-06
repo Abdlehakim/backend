@@ -1,15 +1,16 @@
 // src/routes/api/categories.ts
 import { Router, Request, Response } from 'express';
-import Categorie from '@/models/stock/Categorie';
-import SubCategorie from '@/models/stock/SubCategorie';
-import HomePageData from '@/models/websitedata/homePageData';
+import Categorie     from '@/models/stock/Categorie';
+import SubCategorie  from '@/models/stock/SubCategorie';
+import HomePageData  from '@/models/websitedata/homePageData';
 
 const router = Router();
 
-"// GET /api/categories"
+/* ================================================================== */
+/*  GET /api/categories            (home page – limited to 6)         */
+/* ================================================================== */
 router.get('/', async (req: Request, res: Response) => {
   try {
-    // Fetch approved categories, limited to 6
     const cats = await Categorie
       .find({ vadmin: 'approve' })
       .select('_id reference name slug imageUrl iconUrl bannerUrl')
@@ -17,7 +18,6 @@ router.get('/', async (req: Request, res: Response) => {
       .populate('productCount')
       .lean();
 
-    // For each category, manually fetch its approved subcategories
     const result = await Promise.all(
       cats.map(async (cat: any) => {
         const subs = await SubCategorie.find({
@@ -28,16 +28,16 @@ router.get('/', async (req: Request, res: Response) => {
           .lean();
 
         return {
-          _id: cat._id.toString(),
-          name: cat.name,
-          slug: cat.slug,
-          iconUrl: cat.iconUrl || null,
-          numberproduct: cat.productCount ?? 0,
-          imageUrl: cat.imageUrl || '/fallback.jpg',
-          subcategories: subs.map((sub: any) => ({
-            _id: sub._id.toString(),
-            name: sub.name,
-            slug: sub.slug,
+          _id:            cat._id.toString(),
+          name:           cat.name,
+          slug:           cat.slug,
+          iconUrl:        cat.iconUrl       || null,
+          numberproduct:  cat.productCount  ?? 0,
+          imageUrl:       cat.imageUrl      || '/fallback.jpg',
+          subcategories:  subs.map((sub: any) => ({
+            _id:   sub._id.toString(),
+            name:  sub.name,
+            slug:  sub.slug,
           })),
         };
       })
@@ -51,21 +51,68 @@ router.get('/', async (req: Request, res: Response) => {
 });
 
 
-// GET /api/categories/:id/subcategories
+/* ================================================================== */
+/*  GET /api/categories/getAll      (full list for admin, etc.)       */
+/* ================================================================== */
+router.get('/getAll', async (req: Request, res: Response) => {
+  try {
+    const cats = await Categorie
+      .find({ vadmin: 'approve' })
+      .select('_id reference name slug imageUrl iconUrl bannerUrl')
+      .populate('productCount')
+      .lean();
+
+    const result = await Promise.all(
+      cats.map(async (cat: any) => {
+        const subs = await SubCategorie.find({
+          categorie: cat._id,
+          vadmin: 'approve',
+        })
+          .select('_id name slug bannerUrl iconUrl imageUrl')
+          .lean();
+
+        return {
+          _id:            cat._id.toString(),
+          name:           cat.name,
+          slug:           cat.slug,
+          iconUrl:        cat.iconUrl       || null,
+          numberproduct:  cat.productCount  ?? 0,
+          imageUrl:       cat.imageUrl      || '/fallback.jpg',
+          subcategories:  subs.map((sub: any) => ({
+            _id:   sub._id.toString(),
+            name:  sub.name,
+            slug:  sub.slug,
+          })),
+        };
+      })
+    );
+
+    res.json(result);
+  } catch (err) {
+    console.error('Error fetching all categories:', err);
+    res.status(500).json({ error: 'Error fetching all categories' });
+  }
+});
+
+
+/* ================================================================== */
+/*  GET /api/categories/:id/subcategories                              */
+/* ================================================================== */
 router.get('/:id/subcategories', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+
     const subs = await SubCategorie.find({ categorie: id, vadmin: 'approve' })
       .select('_id name slug bannerUrl iconUrl imageUrl')
       .lean();
 
     const result = subs.map((sub: any) => ({
-      _id: sub._id.toString(),
-      name: sub.name,
-      slug: sub.slug,
+      _id:       sub._id.toString(),
+      name:      sub.name,
+      slug:      sub.slug,
       bannerUrl: sub.bannerUrl || null,
-      iconUrl: sub.iconUrl || null,
-      imageUrl: sub.imageUrl || null,
+      iconUrl:   sub.iconUrl   || null,
+      imageUrl:  sub.imageUrl  || null,
     }));
 
     res.json(result);
@@ -75,12 +122,17 @@ router.get('/:id/subcategories', async (req: Request, res: Response) => {
   }
 });
 
-// GET /api/categories/title
-router.get('/title', async (req: Request, res: Response) => {
+
+/* ================================================================== */
+/*  GET /api/categories/title                                          */
+/* ================================================================== */
+router.get('/title', async (_req: Request, res: Response) => {
   try {
-    const titleCategorie = await HomePageData.findOne()
+    const titleCategorie = await HomePageData
+      .findOne()
       .select('HPcategorieTitle HPcategorieSubTitle')
       .lean();
+
     res.json(titleCategorie);
   } catch (err) {
     console.error('Error fetching title categorie:', err);

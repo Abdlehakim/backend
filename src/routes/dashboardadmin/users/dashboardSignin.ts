@@ -27,7 +27,7 @@ interface TokenPayload {
 
 /* ---------- issue a 5-minute JWT ---------- */
 const signToken = (payload: TokenPayload): string =>
-  jwt.sign(payload, JWT_SECRET, { expiresIn: "5m" });
+  jwt.sign(payload, JWT_SECRET, { expiresIn: "4h" });
 
 /* =============================================================
    POST /api/signindashboardadmin
@@ -81,7 +81,7 @@ router.post(
       ) as { exp: number };
       const expMs = exp * 1000;
 
-      /* ----- common cookie options (5 min) ----- */
+      /* ----- common cookie options ----- */
       const commonOpts = {
         ...COOKIE_OPTS,
         maxAge:  4 * 60 * 60 * 1000,

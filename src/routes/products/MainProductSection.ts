@@ -76,14 +76,20 @@ router.get("/:slugProduct", async (req: Request, res: Response) => {
 /*  Lightweight details — returns description + productDetails only   */
 /* ================================================================== */
 router.get(
-  "/prodcutDetails/:slugProduct",
+  "/productDetails/:slugProduct",
   async (req: Request, res: Response): Promise<void> => {
     try {
       const product = await Product.findOne({
         slug: req.params.slugProduct,
         vadmin: "approve",
       })
-        .select("description productDetails -_id")
+        .select({
+          description: 1,
+          "productDetails.name": 1,
+          "productDetails.description": 1,
+          "productDetails.image": 1,
+          _id: 0,
+        })
         .lean();
 
       if (!product) {
@@ -91,14 +97,21 @@ router.get(
         return;
       }
 
-      res.json(product);
+      /*  Optional clean-up: keep rows that have a non-blank name  */
+      const filtered = {
+        ...product,
+        productDetails: (product.productDetails || []).filter(
+          (row: any) => row?.name && row.name.trim()
+        ),
+      };
+
+      res.json(filtered);
     } catch (err) {
       console.error("Error fetching product details:", err);
       res.status(500).json({ error: "Error fetching data" });
     }
   }
 );
-
 /* ================================================================== */
 /*  GET /api/products/MainProductSection/similarById/:id              */
 /*  Returns a NEW random sample on every request                      */

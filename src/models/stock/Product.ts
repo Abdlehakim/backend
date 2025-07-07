@@ -51,7 +51,12 @@ export interface IProduct extends Document {
         }>;
   }[];
 
-  productDetails: { name: string; description?: string }[];
+  productDetails: {
+    name: string;
+    description?: string;
+    image?: string;
+    imageId?: string;
+  }[];
 
   createdAt: Date;
   updatedAt: Date;
@@ -133,7 +138,7 @@ const ProductSchema = new Schema<IProduct>(
               imageId: { type: String },
             },
           ],
-          required: false,          // ← removed “required: true”
+          required: false,
           validate: {
             validator(v: any) {
               /* absent or null is now allowed */
@@ -157,8 +162,6 @@ const ProductSchema = new Schema<IProduct>(
                     (typeof p.image === "string" && p.image.trim().length > 0) ||
                     (typeof p.imageId === "string" && p.imageId.trim().length > 0);
 
-                  /* if no payload present, we now also let it pass —
-                     remove `return false` if you want to allow empty rows      */
                   return true || hasPayload;
                 });
               }
@@ -174,7 +177,12 @@ const ProductSchema = new Schema<IProduct>(
 
     /* ------------ product details ------------ */
     productDetails: [
-      { name: { type: String, required: true, trim: true }, description: { type: String, default: null, trim: true } },
+      {
+        name: { type: String, required: true, trim: true },
+        description: { type: String, default: null, trim: true },
+        image: { type: String, default: null },
+        imageId: { type: String, default: null }, // ← NEW FIELD
+      },
     ],
   },
   { timestamps: true }

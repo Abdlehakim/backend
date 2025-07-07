@@ -22,8 +22,7 @@ interface DecodedToken {
 }
 
 /* ---------- helpers ---------- */
-const FIVE_MIN_MS =  4 * 60 * 60 * 1000; // 5 minutes
-
+const FIVE_MIN_MS =  4 * 60 * 60 * 1000; 
 function setAuthCookies(res: Parameters<RequestHandler>[1], token: string) {
   // decode once to mirror exp (seconds → ms)
   const { exp } = jwt.decode(token) as { exp: number };

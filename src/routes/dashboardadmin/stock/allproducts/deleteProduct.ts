@@ -9,6 +9,13 @@ const router = Router();
 
 /**
  * DELETE /api/dashboardadmin/stock/products/delete/:productId
+ *
+ * • Removes the product document
+ * • Cleans up every image stored on Cloudinary:
+ *     – mainImageId
+ *     – extraImagesId[]
+ *     – productDetails[].imageId
+ *     – attributes[].value[?].imageId
  */
 router.delete(
   "/delete/:productId",
@@ -17,34 +24,61 @@ router.delete(
     try {
       const { productId } = req.params;
 
-      // 1) Fetch product first to access image public IDs
-      const existing = await Product.findById(productId);
+      /* ------------------------------------------------------------------ */
+      /* 1) Load product (needed to collect all Cloudinary public IDs)       */
+      /* ------------------------------------------------------------------ */
+      const existing = await Product.findById(productId).lean();
       if (!existing) {
         res.status(404).json({ message: "Product not found." });
         return;
       }
 
-      // 2) Delete main image from Cloudinary
-      if (existing.mainImageId) {
-        try {
-          await cloudinary.uploader.destroy(existing.mainImageId);
-        } catch (err) {
-          console.warn("Failed to delete main image:", err);
-        }
-      }
+      /* ------------------------------------------------------------------ */
+      /* 2) Collect every publicId that needs removal                        */
+      /* ------------------------------------------------------------------ */
+      const idsToDelete = new Set<string>();
 
-      // 3) Delete extra images from Cloudinary
-      if (existing.extraImagesId?.length) {
-        for (const publicId of existing.extraImagesId) {
+      /* main image */
+      if (existing.mainImageId) idsToDelete.add(existing.mainImageId);
+
+      /* extra images */
+      (existing.extraImagesId || []).forEach((id) => id && idsToDelete.add(id));
+
+      /* product-details images */
+      (existing.productDetails || []).forEach((d: any) => {
+        if (d?.imageId) idsToDelete.add(d.imageId);
+      });
+
+      /* attribute images */
+      (existing.attributes || []).forEach((attr: any) => {
+        const v = attr?.value;
+        if (!v) return;
+
+        if (Array.isArray(v)) {
+          v.forEach((item: any) => {
+            if (item?.imageId) idsToDelete.add(item.imageId);
+          });
+        } else if (typeof v === "object" && v.imageId) {
+          idsToDelete.add(v.imageId);
+        }
+      });
+
+      /* ------------------------------------------------------------------ */
+      /* 3) Delete images from Cloudinary (best-effort)                      */
+      /* ------------------------------------------------------------------ */
+      await Promise.all(
+        [...idsToDelete].map(async (publicId) => {
           try {
             await cloudinary.uploader.destroy(publicId);
           } catch (err) {
-            console.warn(`Failed to delete extra image (${publicId}):`, err);
+            console.warn(`⚠️  Failed to delete image (${publicId}):`, err);
           }
-        }
-      }
+        })
+      );
 
-      // 4) Delete product from DB
+      /* ------------------------------------------------------------------ */
+      /* 4) Delete product document                                         */
+      /* ------------------------------------------------------------------ */
       await Product.findByIdAndDelete(productId);
 
       res.json({ message: "Product deleted successfully." });

@@ -11,6 +11,15 @@ import cloudinary from "@/lib/cloudinary";
 const router = Router();
 
 /* ------------------------------------------------------------------ */
+/*  Helpers                                                           */
+/* ------------------------------------------------------------------ */
+/** Extract Cloudinary public_id from a secure URL. */
+function extractPublicId(url: string): string {
+  const [, rest] = url.split("/upload/");
+  return rest?.replace(/\.(jpg|jpeg|png|webp|gif|svg)$/i, "") ?? url;
+}
+
+/* ------------------------------------------------------------------ */
 /*  PUT /api/dashboardadmin/stock/products/update/:productId          */
 /* ------------------------------------------------------------------ */
 router.put(
@@ -32,18 +41,19 @@ router.put(
     }
 
     try {
+      /* ---------- fetch existing ---------- */
       const existingProduct = await Product.findById(productId);
       if (!existingProduct) {
         res.status(404).json({ message: "Product not found." });
         return;
       }
 
-      /* -------------------------------------------------------- */
-      /* 1) scalar fields (unchanged)                             */
-      /* -------------------------------------------------------- */
+      /* ------------------------------------------------------------------ */
+      /* 1) scalar fields                                                   */
+      /* ------------------------------------------------------------------ */
       const updateData: Record<string, any> = { updatedBy: userId };
 
-      const fields = [
+      const scalarFields = [
         "name", "info", "description",
         "categorie", "subcategorie", "boutique", "brand",
         "stock", "price", "tva", "discount",
@@ -52,7 +62,7 @@ router.put(
 
       const nullableIds = ["subcategorie", "boutique", "brand"] as const;
 
-      for (const field of fields) {
+      for (const field of scalarFields) {
         const raw = req.body[field];
         if (raw === undefined) continue;
 
@@ -70,74 +80,124 @@ router.put(
         updateData[field] = typeof raw === "string" ? raw.trim() : raw;
       }
 
-      /* -------------------------------------------------------- */
-      /* 2) productDetails — keep / replace / delete image        */
-      /* -------------------------------------------------------- */
-      if (req.body.productDetails !== undefined) {
-        try {
-          const rawDetails   = JSON.parse(req.body.productDetails);
-          const detailImages = (req.files as any)?.detailsImages || [];
-
-          const processed = await Promise.all(
-            rawDetails.map(
-              async (
-                d: { name: string; description?: string; image?: string | null; imageId?: string },
-                idx: number
-              ) => {
-                d.name = d.name.trim();
-                if (d.description) d.description = d.description.trim();
-
-                const current  = existingProduct.productDetails?.[idx];
-                const newFile  = detailImages.find(
-                  (f: any) => f.originalname === `detailsImages-${idx}`
-                );
-
-                /* ---------- user replaced with NEW file ---------- */
-                if (newFile) {
-                  const up = await uploadToCloudinary(newFile, "products/details");
-                  d.image   = up.secureUrl;
-                  d.imageId = up.publicId;
-
-                  if (current?.imageId) {
-                    await cloudinary.uploader.destroy(current.imageId).catch(() => null);
-                  }
-                }
-                /* ---------- user explicitly CLEARED image -------- */
-                else if (d.image === null) {                 // <── tightened rule (no “undefined” here)
-                  if (current?.imageId) {
-                    await cloudinary.uploader.destroy(current.imageId).catch(() => null);
-                  }
-                  delete d.image;
-                  delete d.imageId;
-                }
-                /* ---------- untouched — keep existing ----------- */
-                else if (current) {
-                  d.image   = current.image;
-                  d.imageId = current.imageId;
-                }
-
-                return d;
-              }
-            )
-          );
-
-          updateData.productDetails = processed;
-        } catch {
-          res.status(400).json({ message: "Invalid JSON for productDetails." });
-          return;
-        }
+      /* ------------------------------------------------------------------ */
+      /* 2) MAIN IMAGE HANDLING                                             */
+      /* ------------------------------------------------------------------ */
+      const mainFile = (req.files as any)?.mainImage?.[0];
+      if (mainFile) {
+        // new main image uploaded – replace existing
+        const up = await uploadToCloudinary(mainFile, "products/main");
+        if (existingProduct.mainImageId)
+          await cloudinary.uploader.destroy(existingProduct.mainImageId).catch(() => null);
+        updateData.mainImageUrl = up.secureUrl;
+        updateData.mainImageId  = up.publicId;
+      } else if ("removeMain" in req.body && existingProduct.mainImageId) {
+        // user removed main image
+        await cloudinary.uploader.destroy(existingProduct.mainImageId).catch(() => null);
+        updateData.mainImageUrl = undefined;
+        updateData.mainImageId  = undefined;
       }
 
-      /* -------------------------------------------------------- */
-      /* 3) attributes, main img, extra imgs — unchanged          */
-      /* -------------------------------------------------------- */
-      // …(rest of the route is identical to your previous version)…
+      /* ------------------------------------------------------------------ */
+      /* 3) EXTRA IMAGES (add / delete)                                     */
+      /* ------------------------------------------------------------------ */
+      const remainingExtraUrls: string[] = JSON.parse(req.body.remainingExtraUrls || "[]");
+      const removedExtraUrls:   string[] = JSON.parse(req.body.removedExtraUrls   || "[]");
 
-      const updated = await Product.findByIdAndUpdate(
-        productId,
-        updateData,
-        { new: true, runValidators: true }
+      // delete each removed asset from Cloudinary
+      await Promise.all(
+        removedExtraUrls.map(u => {
+          const id = extractPublicId(u);
+          return cloudinary.uploader.destroy(id).catch(() => null);
+        })
       );
+
+      // upload any new extra images
+      const extraFiles = (req.files as any)?.extraImages ?? [];
+      const newExtraUrls: string[] = [];
+      for (const f of extraFiles) {
+        const up = await uploadToCloudinary(f, "products/extra");
+        newExtraUrls.push(up.secureUrl);
+      }
+
+      if (remainingExtraUrls.length || newExtraUrls.length) {
+        updateData.extraImagesUrl = [...remainingExtraUrls, ...newExtraUrls];
+      } else if (removedExtraUrls.length && !extraFiles.length) {
+        // all extras removed and none added – clear field
+        updateData.extraImagesUrl = [];
+      }
+
+      /* ------------------------------------------------------------------ */
+      /* 4) ATTRIBUTE IMAGES                                                */
+      /* ------------------------------------------------------------------ */
+      const attrFiles = (req.files as any)?.attributeImages ?? [];
+      if (attrFiles.length) {
+        const attrs = existingProduct.attributes || [];
+        for (const f of attrFiles) {
+          const [, attrIdx, valIdx] = f.fieldname.match(/attributeImages-(\d+)-(\d+)/) || [];
+          if (attrIdx !== undefined && valIdx !== undefined) {
+            const up = await uploadToCloudinary(f, `products/attr/${productId}`);
+            const idxA = +attrIdx;
+            const idxV = +valIdx;
+            if (Array.isArray(attrs[idxA]?.value) && attrs[idxA].value[idxV]) {
+              attrs[idxA].value[idxV].image   = up.secureUrl;
+              attrs[idxA].value[idxV].imageId = up.publicId;
+            }
+          }
+        }
+        updateData.attributes = attrs;
+      } else if (req.body.attributes !== undefined) {
+        // replace entire attributes array if sent as JSON
+        updateData.attributes = JSON.parse(req.body.attributes);
+      }
+
+      /* ------------------------------------------------------------------ */
+      /* 5) PRODUCT DETAILS + DETAIL IMAGES                                 */
+      /* ------------------------------------------------------------------ */
+      if (req.body.productDetails !== undefined) {
+        const detailsJson = JSON.parse(req.body.productDetails);
+        const detailFiles = (req.files as any)?.detailsImages ?? [];
+
+        const processed = await Promise.all(
+          detailsJson.map(
+            async (
+              d: { name: string; description?: string; image?: string | null; imageId?: string },
+              idx: number
+            ) => {
+              d.name = d.name.trim();
+              if (d.description) d.description = d.description.trim();
+
+              const cur = existingProduct.productDetails?.[idx];
+              const newFile = detailFiles.find((f: any) => f.fieldname === `detailsImages-${idx}`);
+
+              if (newFile) {
+                const up = await uploadToCloudinary(newFile, `products/details/${productId}`);
+                if (cur?.imageId) await cloudinary.uploader.destroy(cur.imageId).catch(() => null);
+                d.image   = up.secureUrl;
+                d.imageId = up.publicId;
+              } else if (d.image === null) {
+                if (cur?.imageId) await cloudinary.uploader.destroy(cur.imageId).catch(() => null);
+                delete d.image;
+                delete d.imageId;
+              } else if (cur) {
+                d.image   = cur.image;
+                d.imageId = cur.imageId;
+              }
+
+              return d;
+            }
+          )
+        );
+        updateData.productDetails = processed;
+      }
+
+      /* ------------------------------------------------------------------ */
+      /* 6) FINAL WRITE                                                     */
+      /* ------------------------------------------------------------------ */
+      const updated = await Product.findByIdAndUpdate(productId, updateData, {
+        new: true,
+        runValidators: true,
+      });
 
       res.json({ message: "Product updated successfully.", product: updated });
     } catch (err: any) {

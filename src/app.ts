@@ -119,6 +119,8 @@ import dashboardAuth from "./routes/dashboardadmin/users/dashboardAuth";
 import createdUser from "./routes/dashboardadmin/users/createUser";
 import deleteUser from "./routes/dashboardadmin/users/deleteUser";
 import getAllUsersWithRole from "./routes/dashboardadmin/users/getAllUsersWithRole";
+import updateUserDashboard from "./routes/dashboardadmin/users/updateUserDashboard";
+import getUserById from "./routes/dashboardadmin/users/getUserById";
 
 /* ---------- Dashboard Roles & Permissions ---------- */
 import createRoles from "./routes/dashboardadmin/roles/createRoles";
@@ -262,9 +264,10 @@ app.use("/api/website/header/", GetFooterData);
 /* ---------- Dashboard paths (auth, users, roles, stock, etc.) --------- */
 app.use("/api/signindashboardadmin", signinDashboardAdmin);
 app.use("/api/dashboardAuth", dashboardAuth);
-
+app.use("/api/dashboardadmin/users", updateUserDashboard);
 app.use("/api/dashboardadmin/users", createdUser);
 app.use("/api/dashboardadmin/users", deleteUser);
+app.use("/api/dashboardadmin/users", getUserById);
 app.use("/api/dashboardadmin/getAllUsersWithRole", getAllUsersWithRole);
 app.use("/api/dashboardadmin/getAllPermission", getAllPermission);
 

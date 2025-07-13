@@ -13,7 +13,7 @@ const router = Router();
 /* ------------------------------------------------------------------ */
 router.get(
   "/all",
-  requirePermission("M_Shipping"),
+  requirePermission("M_Checkout"),
   async (req: Request, res: Response): Promise<void> => {
     try {
       /* ---------- query-string params ---------- */

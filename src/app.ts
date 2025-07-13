@@ -71,6 +71,12 @@ import updateAuth from "./routes/client/settings/updateClientdetails";
 import PostProductReviews from "./routes/products/PostProductReviews";
 import SimilarProduct from "./routes/products/SimilarProduct";
 
+/* ---------- Dashboard Payment + Currency settings   ---------- */
+import updatePaymentSettings from "./routes/dashboardadmin/checkout/updatePaymentSettings";
+import getPaymentSettings from "./routes/dashboardadmin/checkout/getPaymentSettings";
+import getCurrencySettings from "./routes/dashboardadmin/checkout/payment-currency/getCurrencySettings";
+import updateCurrencySettings from "./routes/dashboardadmin/checkout/payment-currency/updateCurrencySettings";
+
 
 /* ---------- HomePage, nav, banners ---------- */
 import productRoutes from "./routes/homePage/productsRoutes";
@@ -142,6 +148,12 @@ import getAllDeliveryOptions   from "./routes/dashboardadmin/delivery-options/ge
 import getDeliveryOptionById   from "./routes/dashboardadmin/delivery-options/getDeliveryOptionById";
 import updateDeliveryOption    from "./routes/dashboardadmin/delivery-options/updateDeliveryOption";
 import deleteDeliveryOption    from "./routes/dashboardadmin/delivery-options/deleteDeliveryOption";
+
+/* payment flags */
+app.use("/api/dashboardadmin/checkout", updatePaymentSettings);
+app.use("/api/dashboardadmin/checkout", getPaymentSettings);
+app.use("/api/dashboardadmin/checkout", getCurrencySettings);
+app.use("/api/dashboardadmin/checkout", updateCurrencySettings)
 
 
 /* ---------- Dashboard Stock: Products ---------- */
@@ -404,6 +416,8 @@ app.use("*", notFound);
 import { createOrUpdatePermissions } from "./scripts/createOrUpdatePermissions";
 import { initializeDefaultRoles } from "./scripts/initRoles";
 import createSuperAdminAccount from "./scripts/initSuperAdmin";
+import initPaymentSettings         from "./scripts/initPaymentSettings";
+import initCurrencySettings from "./scripts/initCurrencySettings";
 
 (async () => {
   try {
@@ -411,6 +425,8 @@ import createSuperAdminAccount from "./scripts/initSuperAdmin";
       await initializeDefaultRoles();
     }
     await createSuperAdminAccount();
+    await initPaymentSettings();
+    await initCurrencySettings();
 
     app.listen(PORT, () =>
       console.log(`🚀  Server listening on http://localhost:${PORT}`)

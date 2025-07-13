@@ -5,7 +5,7 @@ export const PERMISSIONS = {
   MANAGE_WebsiteData: 'M_WebsiteData',
   MANAGE_Stock: 'M_Stock',
   MANAGE_Blog: 'M_Blog',
-  MANAGE_Shipping:'M_Shipping'
+  MANAGE_Checkout:'M_Checkout'
 } as const;
 
 export type Permission = typeof PERMISSIONS[keyof typeof PERMISSIONS];

@@ -13,7 +13,7 @@ const router = Router();
 /* ------------------------------------------------------------------ */
 router.put(
   "/update/:deliveryId",
-  requirePermission("M_Shipping"),
+  requirePermission("M_Checkout"),
   async (req: Request, res: Response): Promise<void> => {
     const { deliveryId } = req.params;
     const userId = req.dashboardUser?._id;

@@ -13,7 +13,7 @@ const router = Router();
 /* ------------------------------------------------------------------ */
 router.post(
   "/create",
-  requirePermission("M_Shipping"),          // adjust to your permission scheme
+  requirePermission("M_Checkout"),          // adjust to your permission scheme
   async (req: Request, res: Response): Promise<void> => {
     try {
       /* ---------- 1) Extract + trim inputs ---------- */

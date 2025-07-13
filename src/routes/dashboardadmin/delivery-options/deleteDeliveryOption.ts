@@ -13,7 +13,7 @@ const router = Router();
 /* ------------------------------------------------------------------ */
 router.delete(
   "/delete/:deliveryId",
-  requirePermission("M_Shipping"),
+  requirePermission("M_Checkout"),
   async (req: Request, res: Response): Promise<void> => {
     const { deliveryId } = req.params;
 

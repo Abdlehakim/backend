@@ -71,6 +71,7 @@ import updateAuth from "./routes/client/settings/updateClientdetails";
 import PostProductReviews from "./routes/products/PostProductReviews";
 import SimilarProduct from "./routes/products/SimilarProduct";
 
+
 /* ---------- HomePage, nav, banners ---------- */
 import productRoutes from "./routes/homePage/productsRoutes";
 import categorieRoutes from "./routes/NavMenu/categoriesRoutes";
@@ -134,6 +135,14 @@ import updateRolePermissions from "./routes/dashboardadmin/roles/updateRolePermi
 import getAllClient from "./routes/dashboardadmin/client/getAllClient";
 import deleteClient from "./routes/dashboardadmin/client/deleteClient";
 import getAllOrders from "./routes/dashboardadmin/orders/getAllOrders";
+
+/* ---------- Dashboard Delivery Options ---------- */
+import createDeliveryOption    from "./routes/dashboardadmin/delivery-options/createDeliveryOption";
+import getAllDeliveryOptions   from "./routes/dashboardadmin/delivery-options/getAllDeliveryOption";
+import getDeliveryOptionById   from "./routes/dashboardadmin/delivery-options/getDeliveryOptionById";
+import updateDeliveryOption    from "./routes/dashboardadmin/delivery-options/updateDeliveryOption";
+import deleteDeliveryOption    from "./routes/dashboardadmin/delivery-options/deleteDeliveryOption";
+
 
 /* ---------- Dashboard Stock: Products ---------- */
 import addNewProduct from "./routes/dashboardadmin/stock/allproducts/addNewProduct";
@@ -284,6 +293,13 @@ app.use("/api/dashboardadmin/client", deleteClient);
 
 /* orders */
 app.use("/api/dashboardadmin/orders", getAllOrders);
+
+/* delivery options */
+app.use("/api/dashboardadmin/delivery-options", createDeliveryOption);
+app.use("/api/dashboardadmin/delivery-options", getAllDeliveryOptions);
+app.use("/api/dashboardadmin/delivery-options", getDeliveryOptionById);
+app.use("/api/dashboardadmin/delivery-options", updateDeliveryOption);
+app.use("/api/dashboardadmin/delivery-options", deleteDeliveryOption);
 
 /* stock: products & attributes */
 app.use("/api/dashboardadmin/stock/products", addNewProduct);

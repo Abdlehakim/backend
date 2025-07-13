@@ -1,4 +1,4 @@
-// src/routes/api/categories.ts
+// src/routes/NavMenu/categoriesRoutes.ts
 import { Router, Request, Response } from 'express';
 import Categorie     from '@/models/stock/Categorie';
 import SubCategorie  from '@/models/stock/SubCategorie';

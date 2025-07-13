@@ -72,10 +72,15 @@ import PostProductReviews from "./routes/products/PostProductReviews";
 import SimilarProduct from "./routes/products/SimilarProduct";
 
 /* ---------- Dashboard Payment + Currency settings   ---------- */
-import updatePaymentSettings from "./routes/dashboardadmin/checkout/updatePaymentSettings";
-import getPaymentSettings from "./routes/dashboardadmin/checkout/getPaymentSettings";
-import getCurrencySettings from "./routes/dashboardadmin/checkout/payment-currency/getCurrencySettings";
-import updateCurrencySettings from "./routes/dashboardadmin/checkout/payment-currency/updateCurrencySettings";
+import updatePaymentSettings from "./routes/dashboardadmin/payment/payment-settings/updatePaymentSettings";
+import getPaymentSettings from "./routes/dashboardadmin/payment/payment-settings/getPaymentSettings";
+import getCurrencySettings from "./routes/dashboardadmin/payment/payment-currency/getCurrencySettings";
+import updateCurrencySettings from "./routes/dashboardadmin/payment/payment-currency/updateCurrencySettings";
+
+
+/* ----------  Website / checkout ---------- */
+import getAllDeliveryOptionWeb from "./routes/website/checkout/getAllDeliveryOption";
+import getPaymentMethode from "./routes/website/checkout/getPaymentMethode";
 
 
 /* ---------- HomePage, nav, banners ---------- */
@@ -150,10 +155,10 @@ import updateDeliveryOption    from "./routes/dashboardadmin/delivery-options/up
 import deleteDeliveryOption    from "./routes/dashboardadmin/delivery-options/deleteDeliveryOption";
 
 /* payment flags */
-app.use("/api/dashboardadmin/checkout", updatePaymentSettings);
-app.use("/api/dashboardadmin/checkout", getPaymentSettings);
-app.use("/api/dashboardadmin/checkout", getCurrencySettings);
-app.use("/api/dashboardadmin/checkout", updateCurrencySettings)
+app.use("/api/dashboardadmin/payment/payment-settings", updatePaymentSettings);
+app.use("/api/dashboardadmin/payment/payment-settings", getPaymentSettings);
+app.use("/api/dashboardadmin/payment", getCurrencySettings);
+app.use("/api/dashboardadmin/payment", updateCurrencySettings)
 
 
 /* ---------- Dashboard Stock: Products ---------- */
@@ -275,6 +280,11 @@ app.use("/api/client/address", getClientAddress);
 app.use("/api/client/address", postClientAddress);
 app.use("/api/client/address", updateClienAddressById);
 app.use("/api/client/address", deleteClientAddress);
+
+/* ----------  Website / checkout ---------- */
+
+app.use("/api/checkout/delivery-options", getAllDeliveryOptionWeb);
+app.use("/api/checkout/payment-methods", getPaymentMethode);
 
 /* ---------- header Website / sections ---------- */
 

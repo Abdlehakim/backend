@@ -1,4 +1,4 @@
-import CurrencySettings from "@/models/checkout/CurrencySettings";
+import CurrencySettings from "@/models/payment/CurrencySettings";
 
 /**
  * Ensure the singleton CurrencySettings document exists.

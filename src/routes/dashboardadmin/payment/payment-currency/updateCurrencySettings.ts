@@ -3,7 +3,7 @@
 // Updates primary + optional secondary currencies
 // ───────────────────────────────────────────────────────────────
 import { Router, Request, Response } from "express";
-import CurrencySettings from "@/models/checkout/CurrencySettings";
+import CurrencySettings from "@/models/payment/CurrencySettings";
 import { requirePermission } from "@/middleware/requireDashboardPermission";
 
 const router = Router();

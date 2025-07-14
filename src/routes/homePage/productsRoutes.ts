@@ -17,7 +17,7 @@ router.get(
         .sort({ createdAt: -1 })
         .limit(8)
         .select(
-          "_id name price mainImageUrl slug stockStatus discount reference"
+          "_id name price mainImageUrl slug stockStatus discount reference tva"
         )
         .populate("categorie", "name slug")
         .populate("subcategorie", "name slug")
@@ -31,6 +31,7 @@ router.get(
         mainImageUrl: item.mainImageUrl ?? "",
         status: item.stockStatus,
         discount: item.discount,
+        tva:item.tva,
         reference: item.reference,
         categorie: item.categorie
           ? {
@@ -70,7 +71,7 @@ router.get(
         .sort({ createdAt: -1 })
         .limit(8)
         .select(
-          "_id name price mainImageUrl slug stockStatus discount reference"
+          "_id name price mainImageUrl slug stockStatus discount reference tva"
         )
         .populate("categorie", "name slug")
         .populate("subcategorie", "name slug")
@@ -84,6 +85,7 @@ router.get(
         mainImageUrl: item.mainImageUrl ?? "",
         status: item.stockStatus,
         discount: item.discount,
+        tva:item.tva,
         reference: item.reference,
         categorie: item.categorie
           ? {
@@ -123,7 +125,7 @@ router.get(
         .sort({ createdAt: -1 })
         .limit(8)
         .select(
-          "_id name price mainImageUrl slug stockStatus discount reference"
+          "_id name price mainImageUrl slug stockStatus discount reference tva"
         )
         .populate("categorie", "name slug")
         .populate("subcategorie", "name slug")
@@ -137,6 +139,7 @@ router.get(
         mainImageUrl: item.mainImageUrl ?? "",
         status: item.stockStatus,
         discount: item.discount,
+        tva:item.tva,
         reference: item.reference,
         categorie: item.categorie
           ? {

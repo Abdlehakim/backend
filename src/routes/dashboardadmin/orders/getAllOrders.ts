@@ -3,7 +3,7 @@
 
 
 import express, { Request, Response } from 'express';
-import Order from '@/models/order';
+import Order from '@/models/rder';
 import { requirePermission } from '@/middleware/requireDashboardPermission';
 
 const router = express.Router();

@@ -15,7 +15,6 @@ router.get(
         res.status(401).json({ error: "Unauthorized: User not found." });
         return;
       }
-      // Sort by 'createdAt' in descending order to show the latest address first
       const addresses = await Address.find({ client: userId })
         .sort({ createdAt: -1 })
         .exec();

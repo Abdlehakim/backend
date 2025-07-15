@@ -22,13 +22,13 @@ interface DecodedToken {
 }
 
 /* ---------- helpers ---------- */
-const FIVE_MIN_MS =  4 * 60 * 60 * 1000; 
+const SHOULD_REFRESH_MS =  4 * 60 * 60 * 1000; 
 function setAuthCookies(res: Parameters<RequestHandler>[1], token: string) {
   // decode once to mirror exp (seconds → ms)
   const { exp } = jwt.decode(token) as { exp: number };
   const expMs = exp * 1000;
 
-  const common = { ...COOKIE_OPTS, maxAge: FIVE_MIN_MS, path: "/" };
+  const common = { ...COOKIE_OPTS, maxAge: SHOULD_REFRESH_MS, path: "/" };
   if (!isProd) delete (common as any).domain; // localhost
 
   // ① real JWT – HttpOnly
@@ -88,7 +88,7 @@ const getMe: RequestHandler = async (req, res) => {
         role: (user as any).role, // { name, permissions }
       },
       JWT_SECRET,
-      { expiresIn: "5m" }
+      { expiresIn: "4h" }
     );
 
     setAuthCookies(res, newToken);

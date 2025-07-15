@@ -25,7 +25,7 @@ interface TokenPayload {
   role: TokenRole;
 }
 
-/* ---------- issue a 5-minute JWT ---------- */
+/* ---------- issue a 4h JWT ---------- */
 const signToken = (payload: TokenPayload): string =>
   jwt.sign(payload, JWT_SECRET, { expiresIn: "4h" });
 
@@ -87,7 +87,7 @@ router.post(
         maxAge:  4 * 60 * 60 * 1000,
         path: "/",
       };
-      if (!isProd) delete (commonOpts as any).domain; // localhost fix
+      if (!isProd) delete (commonOpts as any).domain;
 
       /* ① real JWT — HttpOnly, Secure in prod */
       res.cookie("token_FrontEndAdmin", token, {

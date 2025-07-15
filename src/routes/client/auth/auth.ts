@@ -40,8 +40,11 @@ function setAuthCookies(res: Parameters<RequestHandler>[1], token: string) {
 }
 
 function clearAuthCookies(res: Parameters<RequestHandler>[1]) {
-  res.clearCookie("token_FrontEnd",     { path: "/" });
-  res.clearCookie("token_FrontEnd_exp", { path: "/" });
+const { path, domain } = COOKIE_OPTS;
+const opts = { path, ...(domain ? { domain } : {}) };
+
+res.clearCookie("token_FrontEnd",     opts);
+res.clearCookie("token_FrontEnd_exp", opts);
 }
 
 /* ========================================================================== */

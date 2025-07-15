@@ -40,13 +40,21 @@ function setAuthCookies(res: Parameters<RequestHandler>[1], token: string) {
 }
 
 function clearAuthCookies(res: Parameters<RequestHandler>[1]) {
-const { path, domain } = COOKIE_OPTS;
-const opts = { path, ...(domain ? { domain } : {}) };
+  // Approach ①: zero‑out both cookies by setting maxAge: 0
+  const base = { ...COOKIE_OPTS, maxAge: 0, path: "/" };
 
-res.clearCookie("token_FrontEnd",     opts);
-res.clearCookie("token_FrontEnd_exp", opts);
+  // expire the HttpOnly JWT
+  res.cookie("token_FrontEnd", "", {
+    ...base,
+    httpOnly: true,
+  });
+
+  // expire the JS‑readable mirror
+  res.cookie("token_FrontEnd_exp", "", {
+    ...base,
+    httpOnly: false,
+  });
 }
-
 /* ========================================================================== */
 /*  GET /api/auth/me                                                          */
 /* ========================================================================== */

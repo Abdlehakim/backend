@@ -1,5 +1,6 @@
+// src/routes/signin.ts
 /* -------------------------------------------------------------------------- */
-/*  routes/signin.ts                                                          */
+/*  src/routes/signin.ts                                                      */
 /*  Mirrors dashboardSignin pattern: 4 h JWT + mirror‑expiry cookie           */
 /* -------------------------------------------------------------------------- */
 
@@ -17,7 +18,7 @@ const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 if (!GOOGLE_CLIENT_ID) throw new Error("Missing GOOGLE_CLIENT_ID env variable");
 
 /* ---------- helpers ------------------------------------------------------- */
-const SHOULD_REFRESH_MS = 4 * 60 * 60 * 1000;          // 4 h
+const SHOULD_REFRESH_MS = 2 * 60 * 1000;          // 2 minutes
 const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
 
 /** Sign a 4 h JWT */
@@ -35,7 +36,7 @@ function setAuthCookies(
   const expMs = exp * 1000;
 
   const common = { ...COOKIE_OPTS, maxAge: SHOULD_REFRESH_MS, path: "/" };
-  if (!isProd) delete (common as any).domain; // avoid localhost cookie issue
+  if (!isProd) delete (common as any).domain;
 
   // ① real JWT — HttpOnly
   res.cookie("token_FrontEnd", token, {
@@ -50,11 +51,12 @@ function setAuthCookies(
   });
 }
 
-/* ========================================================================== */
-/*  1) Email / Password Sign‑in                                               */
-/* ========================================================================== */
 const router = Router();
 
+/* ========================================================================== */
+/*  1) Email / Password Sign‑in                                               */
+/*     POST /api/signin                                                  */
+/* ========================================================================== */
 router.post("/", async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body as {
@@ -72,7 +74,7 @@ router.post("/", async (req: Request, res: Response) => {
       "+password"
     );
 
-    if (!user || !user.password || !(await user.comparePassword(password))) {
+    if (!user || !user.password || !(await (user as any).comparePassword(password))) {
       res.status(401).json({ message: "Invalid credentials" });
       return;
     }
@@ -91,6 +93,7 @@ router.post("/", async (req: Request, res: Response) => {
 
 /* ========================================================================== */
 /*  2) Google OAuth Sign‑in                                                   */
+/*     POST /api/signin/google                                           */
 /* ========================================================================== */
 router.post("/google", async (req: Request, res: Response) => {
   try {
@@ -114,7 +117,7 @@ router.post("/google", async (req: Request, res: Response) => {
     const email = payload.email.trim().toLowerCase();
     const name = payload.name || payload.given_name || "";
     const phone =
-      // @ts-expect-error – phone isn’t in the official type but we accept it
+      // @ts-expect-error – phone isn’t in the official type but we accept it
       (payload.phone as string | undefined) ?? "";
 
     /* ---------- upsert user ---------- */

@@ -1,3 +1,4 @@
+// src/routes/client/auth/auth.ts
 /* -------------------------------------------------------------------------- */
 /*  src/routes/client/auth/auth.ts                                            */
 /*  Mirrors dashboardAuth pattern: 2 min JWT + mirror‑expiry cookie           */
@@ -5,8 +6,7 @@
 
 import { Router, Request, Response, RequestHandler } from "express";
 import jwt from "jsonwebtoken";
-import bcrypt from "bcrypt";
-import Client, { IClient } from "@/models/Client";
+import Client from "@/models/Client";
 import { COOKIE_OPTS, isProd } from "@/app";   // shared opts + env helper
 
 const router = Router();
@@ -24,7 +24,7 @@ function setAuthCookies(res: Parameters<RequestHandler>[1], token: string) {
   const expMs = exp * 1000;
 
   const common = { ...COOKIE_OPTS, maxAge: SHOULD_REFRESH_MS, path: "/" };
-  if (!isProd) delete (common as any).domain;  // avoid localhost domain issue
+  if (!isProd) delete (common as any).domain;
 
   // ① real JWT — HttpOnly
   res.cookie("token_FrontEnd", token, {
@@ -45,43 +45,9 @@ function clearAuthCookies(res: Parameters<RequestHandler>[1]) {
 }
 
 /* ========================================================================== */
-/*  POST /api/auth/signin                                                     */
-/* ========================================================================== */
-router.post("/signin", async (req: Request, res: Response): Promise<void> => {
-  const { email, password } = req.body;
-
-  if (!email || !password) {
-    res.status(400).json({ message: "Missing credentials" });
-    return;
-  }
-
-  type ClientWithPwd = IClient & { password: string };
-  const user = (await Client.findOne({ email }).select("+password")) as
-    | ClientWithPwd
-    | null;
-
-  if (!user || !(await bcrypt.compare(password, user.password))) {
-    res.status(401).json({ message: "Invalid email or password" });
-    return;
-  }
-
-  // Issue a 2 minute JWT
-  const token = jwt.sign(
-    { id: user._id, email: user.email },
-    JWT_SECRET,
-    { expiresIn: "2m" },
-  );
-
-  setAuthCookies(res, token);
-
-  const { password: _pw, ...safeUser } = user.toObject();
-  res.json({ user: safeUser });
-});
-
-/* ========================================================================== */
 /*  GET /api/auth/me                                                          */
 /* ========================================================================== */
-router.get("/me", async (req: Request, res: Response): Promise<void> => {
+router.get("/me", async (req: any, res: Response): Promise<void> => {
   try {
     const token = req.cookies?.token_FrontEnd;
     if (!token) {
@@ -107,9 +73,9 @@ router.get("/me", async (req: Request, res: Response): Promise<void> => {
 
     // Rotate the token for another 2 minutes
     const newToken = jwt.sign(
-      { id: user._id.toString(), email: user.email },
+      { id: user._id.toString(), email: (user as any).email },
       JWT_SECRET,
-      { expiresIn: "2m" },
+        { expiresIn: "2m" },
     );
     setAuthCookies(res, newToken);
 
@@ -123,7 +89,7 @@ router.get("/me", async (req: Request, res: Response): Promise<void> => {
 /* ========================================================================== */
 /*  POST /api/auth/logout                                                     */
 /* ========================================================================== */
-router.post("/logout", (_req: Request, res: Response): void => {
+router.post("/logout", (_req, res: Response): void => {
   clearAuthCookies(res);
   res.json({ message: "Logged out successfully" });
 });

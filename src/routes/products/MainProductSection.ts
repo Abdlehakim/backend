@@ -117,66 +117,59 @@ router.get(
 /*  Returns a NEW random sample on every request                      */
 /*  ?limit=<n>&exclude=<slug>                                         */
 /* ================================================================== */
-router.get(
-  "/similarById/:id",
-  async (req: Request, res: Response): Promise<void> => {
+router.get("/similarById/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const limitRaw = parseInt(req.query.limit as string, 10);
+    const limit    = Number.isFinite(limitRaw) && limitRaw > 0 ? limitRaw : 4;
+    const exclude  = String(req.query.exclude || "");
+
+    let objId: mongoose.Types.ObjectId;
     try {
-      const { id } = req.params;
-
-      /* ---------- parse query ------------------------------------ */
-      const limitRaw   = parseInt(req.query.limit as string, 10);
-      const limit      = Number.isFinite(limitRaw) && limitRaw > 0 ? limitRaw : 4;
-      const exclude    = String(req.query.exclude || "");
-
-      /* ---------- cast id → ObjectId ----------------------------- */
-      let objId: mongoose.Types.ObjectId;
-      try {
-        objId = new mongoose.Types.ObjectId(id);
-      } catch {
-        res.json([]);               // invalid id → empty set
-        return;
-      }
-
-      /* ---------- aggregation pipeline --------------------------- */
-      const pipeline = [
-        {
-          $match: {
-            vadmin: "approve",
-            ...(exclude && { slug: { $ne: exclude } }),
-            $or: [
-              { categorie:    objId },
-              { subcategorie: objId },
-            ],
-          },
-        },
-        { $sample: { size: limit } },
-        {
-          $project: {
-            _id:          1,
-            name:         1,
-            slug:         1,
-            price:        1,
-            discount:     1,
-            stock:        1,
-            mainImageUrl: 1,
-          },
-        },
-      ];
-
-      const raw  = await Product.aggregate(pipeline);
-      const stamp = Date.now();            // ensure unique keys each call
-      const data = raw.map((p: any, i: number) => ({
-        ...p,
-        _id: `${p._id}-${stamp}-${i}`,
-      }));
-
-      res.json(data);
-    } catch (err) {
-      console.error("Error fetching random similar products:", err);
-      res.status(500).json({ error: "Internal server error" });
+      objId = new mongoose.Types.ObjectId(id);
+    } catch {
+      res.json([]);
+      return;
     }
+
+    const pipeline = [
+      {
+        $match: {
+          vadmin: "approve",
+          ...(exclude && { slug: { $ne: exclude } }),
+          $or: [{ categorie: objId }, { subcategorie: objId }],
+        },
+      },
+      { $sample: { size: limit } },
+      {
+        $project: {
+          _id: 1,
+          name: 1,
+          slug: 1,
+          price: 1,
+          discount: 1,
+          stock: 1,
+          mainImageUrl: 1,
+        },
+      },
+    ];
+
+    const raw = await Product.aggregate(pipeline);
+    const stamp = Date.now();
+
+    // keep _id, add client-only key
+    const data = raw.map((p: any, i: number) => ({
+      ...p,
+      __key: `${p._id}-${stamp}-${i}`, // for React keys if needed
+    }));
+
+    res.json(data);
+  } catch (err) {
+    console.error("Error fetching random similar products:", err);
+    res.status(500).json({ error: "Internal server error" });
   }
-);
+});
 
 
 

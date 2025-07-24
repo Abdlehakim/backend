@@ -27,7 +27,7 @@ interface TokenPayload {
 
 /* ---------- issue a 4h JWT ---------- */
 const signToken = (payload: TokenPayload): string =>
-  jwt.sign(payload, JWT_SECRET, { expiresIn: "4h" });
+  jwt.sign(payload, JWT_SECRET, {   expiresIn: "30m" });
 
 /* =============================================================
    POST /api/signindashboardadmin

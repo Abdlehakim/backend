@@ -14,8 +14,8 @@ const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) throw new Error("Missing JWT_SECRET env variable");
 
-/* ---------- helpers ------------------------------------------------ */
-const SHOULD_REFRESH_MS = 4 * 60 * 60 * 1000; // 4 h
+// 30 minutes in milliseconds
+const SHOULD_REFRESH_MS = 30 * 60 * 1000;
 
 /** Sign a short‑lived JWT */
 const signToken = (user: IClient) =>

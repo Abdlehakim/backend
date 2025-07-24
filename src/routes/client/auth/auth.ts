@@ -16,8 +16,8 @@ const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) throw new Error("Missing JWT_SECRET env variable");
 
 /* ---------- helpers ------------------------------------------------------- */
-// 2 minutes in milliseconds
-const SHOULD_REFRESH_MS = 2 * 60 * 1000;
+// 30 minutes in milliseconds
+const SHOULD_REFRESH_MS = 30 * 60 * 1000;
 
 function setAuthCookies(res: Parameters<RequestHandler>[1], token: string) {
   const { exp } = jwt.decode(token) as { exp: number };
@@ -86,7 +86,7 @@ router.get("/me", async (req: any, res: Response): Promise<void> => {
     const newToken = jwt.sign(
       { id: user._id.toString(), email: (user as any).email },
       JWT_SECRET,
-        { expiresIn: "2m" },
+        { expiresIn: "30m" },
     );
     setAuthCookies(res, newToken);
 

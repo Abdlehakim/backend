@@ -18,13 +18,15 @@ const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 if (!GOOGLE_CLIENT_ID) throw new Error("Missing GOOGLE_CLIENT_ID env variable");
 
 /* ---------- helpers ------------------------------------------------------- */
-const SHOULD_REFRESH_MS = 2 * 60 * 1000;          // 2 minutes
+// 30 minutes in milliseconds
+const SHOULD_REFRESH_MS = 30 * 60 * 1000;
+
 const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
 
 /** Sign a 4 h JWT */
 const signToken = (user: IClient) =>
   jwt.sign({ id: user._id.toString(), email: user.email }, JWT_SECRET, {
-    expiresIn: "4h",
+    expiresIn: "30m",
   });
 
 /** Set both auth cookies (token + mirror exp) */

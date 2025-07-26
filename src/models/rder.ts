@@ -17,7 +17,7 @@ export interface IOrder extends Document {
     name: string;
     tva: number;
     quantity: number;
-    mainImageUrl: string;     // ✅ new canonical field
+    mainImageUrl: string;  
     discount: number;
     price: number;
   }>;

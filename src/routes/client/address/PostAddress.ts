@@ -5,20 +5,26 @@ import Address from "@/models/Address"; // Adjust the path as needed
 const router = express.Router();
 
 // POST /api/client/address/postAddress
-
 router.post(
   "/PostAddress",
   authenticateToken,
   async (req: Request, res: Response): Promise<void> => {
     try {
-      // Destructure the required fields from the request body
-      const { Name, StreetAddress, Country, Province, City, PostalCode } =
-        req.body;
+      // Destructure the required fields (including Phone) from the request body
+      const {
+        Name,
+        StreetAddress,
+        Country,
+        Province,
+        City,
+        PostalCode,
+        Phone,
+      } = req.body;
 
       // Use the authenticated user's id as the client
       const clientId = (req as any).user.id;
 
-      // Create a new address instance
+      // Create a new address instance with Phone
       const newAddress = new Address({
         Name,
         StreetAddress,
@@ -26,6 +32,7 @@ router.post(
         Province,
         City,
         PostalCode,
+        Phone,
         client: clientId,
       });
 

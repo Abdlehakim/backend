@@ -1,48 +1,74 @@
-/// updateClientdetails
-
-
+// src/routes/client/settings/updateClientdetails.ts
 import { Router, Request, Response } from 'express';
 import Client from '@/models/Client';
 import { authenticateToken } from '@/middleware/authenticateToken';
 
+interface AuthRequest extends Request {
+  user: { id: string };
+}
+
 const router = Router();
 
-/**
- * PUT /api/auth/update
- * Update the authenticated user's profile.
- */
-router.put('/update', authenticateToken, async (req: Request, res: Response): Promise<void> => {
-  try {
-    const userId = (req as any).user.id;
-    const { username, email, phone } = req.body;
+// Assurez‑vous d’avoir monté express.json() avant ce router
+//    app.use(express.json());
+//    app.use('/api/clientSetting', router);
 
-    // Validate required fields
-    if (!username || !email) {
-      res.status(400).json({ error: "Username and email are required." });
-      return;
-    }
+router.put(
+  '/update',
+  authenticateToken,
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      // on cast ici pour récupérer user.id
+      const authReq = req as AuthRequest;
+      const userId = authReq.user.id;
 
-    // Update the user's data in the database
-    const updatedUser = await Client.findByIdAndUpdate(
-      userId,
-      { username, email, phone },
-      { new: true, runValidators: true } // Return the updated document and run schema validations
-    ).select('-password'); // Exclude the password field
+      const { username, email, phone } = req.body;
 
-    if (!updatedUser) {
-      res.status(404).json({ error: "User not found." });
-      return;
-    }
+      // récupérer l’existant pour lire isGoogleAccount
+      const existing = await Client.findById(userId);
+      if (!existing) {
+        res.status(404).json({ error: 'Utilisateur introuvable.' });
+        return;
+      }
 
-    res.json(updatedUser);
-  } catch (err: unknown) {
-    console.error("Error updating profile:", err);
-    if (err instanceof Error) {
-      res.status(500).json({ error: err.message });
-    } else {
-      res.status(500).json({ error: "Internal server error." });
+      // construire l’objet d’updates
+      const updates: Partial<{
+        username: string;
+        email: string;
+        phone: string;
+      }> = {};
+
+      if (existing.isGoogleAccount) {
+        // compte Google → on ne met à jour que phone
+        if (typeof phone === 'string') {
+          updates.phone = phone;
+        }
+      } else {
+        // compte classique → username+email sont requis
+        if (!username || !email) {
+          res.status(400).json({ error: 'Username et email sont requis.' });
+          return;
+        }
+        updates.username = username;
+        updates.email    = email;
+        if (typeof phone === 'string') {
+          updates.phone = phone;
+        }
+      }
+
+      const updatedUser = await Client.findByIdAndUpdate(
+        userId,
+        updates,
+        { new: true, runValidators: true }
+      ).select('-password');
+
+      res.json(updatedUser!);
+    } catch (err: unknown) {
+      console.error('Error updating profile:', err);
+      const message = err instanceof Error ? err.message : 'Internal server error.';
+      res.status(500).json({ error: message });
     }
   }
-});
+);
 
 export default router;

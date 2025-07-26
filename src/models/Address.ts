@@ -8,6 +8,7 @@ export interface IAddress extends Document {
   Province: string;
   City: string;
   PostalCode: string;
+  Phone: string;
   client: IClient | string;
   createdAt?: Date;
   updatedAt?: Date;
@@ -21,7 +22,8 @@ const AddressSchema: Schema = new Schema(
     Province: { type: String, required: false },
     City: { type: String, required: true },
     PostalCode: { type: String, required: true },
-    client: { type: mongoose.Schema.Types.ObjectId, ref: "Client" },
+    Phone: { type: String, required: true },
+    client: { type: mongoose.Schema.Types.ObjectId, ref: "Client", required: true },
   },
   { timestamps: true }
 );

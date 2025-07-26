@@ -31,6 +31,7 @@ router.put(
       address.Province = req.body.Province ?? address.Province;
       address.City = req.body.City ?? address.City;
       address.PostalCode = req.body.PostalCode ?? address.PostalCode;
+      address.Phone = req.body.Phone ?? address.Phone;  // ← added phone update
 
       await address.save();
       res.status(200).json({ message: 'Address updated successfully', address });

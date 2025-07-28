@@ -146,6 +146,8 @@ import updateRolePermissions from "./routes/dashboardadmin/roles/updateRolePermi
 import getAllClient from "./routes/dashboardadmin/client/getAllClient";
 import deleteClient from "./routes/dashboardadmin/client/deleteClient";
 import getAllOrders from "./routes/dashboardadmin/orders/getAllOrders";
+import getOrderById from "./routes/dashboardadmin/orders/getOrderById";
+
 
 /* ---------- Dashboard Delivery Options ---------- */
 import createDeliveryOption    from "./routes/dashboardadmin/delivery-options/createDeliveryOption";
@@ -315,6 +317,7 @@ app.use("/api/dashboardadmin/client", deleteClient);
 
 /* orders */
 app.use("/api/dashboardadmin/orders", getAllOrders);
+app.use("/api/dashboardadmin/orders", getOrderById);
 
 /* delivery options */
 app.use("/api/dashboardadmin/delivery-options", createDeliveryOption);

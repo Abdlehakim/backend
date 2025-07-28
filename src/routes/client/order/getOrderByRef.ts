@@ -1,6 +1,6 @@
 import express, { Request, Response } from 'express';
 import { authenticateToken } from '@/middleware/authenticateToken';
-import Order from '@/models/rder';
+import Order from '@/models/Order';
 
 const router = express.Router();
 
@@ -27,22 +27,21 @@ router.get(
         return;
       }
 
-      // 4. Find the order by ref (and optionally populate the address)
-      const order = await Order.findOne({ ref }).populate('address');
+      // 3. Find the order by ref (no more `address` field)
+      const order = await Order.findOne({ ref }).lean();
 
       if (!order) {
         res.status(404).json({ error: `No order found with ref '${ref}'` });
         return;
       }
 
-      // 5. Optionally ensure the order belongs to this user
-      //    (only if you want to enforce that a user can see only their own orders)
+      // 4. Ensure the order belongs to this user
       if (order.user.toString() !== userId.toString()) {
         res.status(403).json({ error: 'You do not have permission to view this order.' });
         return;
       }
 
-      // 6. Return the order
+      // 5. Return the order, including the DeliveryAddress array
       res.status(200).json(order);
     } catch (error) {
       console.error('Error retrieving order:', error);

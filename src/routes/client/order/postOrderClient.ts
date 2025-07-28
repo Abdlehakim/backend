@@ -3,7 +3,7 @@
 ------------------------------------------------------------------ */
 import express, { Request, Response } from "express";
 import { authenticateToken } from "@/middleware/authenticateToken";
-import Order from "@/models/rder";        // ✅ correct file name
+import Order from "@/models/Order";
 import Client from "@/models/Client";
 
 const router = express.Router();
@@ -16,30 +16,29 @@ router.post(
   authenticateToken,
   async (req: Request, res: Response): Promise<void> => {
     try {
-      /* 1️⃣  Auth */
+      // 1️⃣ Auth
       const userId = (req as any).user?.id;
       if (!userId) {
         res.status(401).json({ error: "Unauthorized: User not found." });
         return;
       }
 
-      /* 2️⃣  Body */
+      // 2️⃣ Body (now expecting DeliveryAddress array instead of single address)
       const {
-        address,
+        DeliveryAddress,
         paymentMethod,
         selectedMethod,
         deliveryCost,
-        totalDiscount,
-        totalWithShipping,
         items,
       } = req.body;
 
       if (
-        !address ||
+        !Array.isArray(DeliveryAddress) ||
+        DeliveryAddress.length === 0 ||
         !paymentMethod ||
         !selectedMethod ||
-        !items?.length ||
-        !totalWithShipping
+        !Array.isArray(items) ||
+        items.length === 0
       ) {
         res
           .status(400)
@@ -47,7 +46,7 @@ router.post(
         return;
       }
 
-      /* 3️⃣  User exists? */
+      // 3️⃣ User exists?
       const foundUser = await Client.findById(userId).exec();
       if (!foundUser) {
         res
@@ -56,7 +55,7 @@ router.post(
         return;
       }
 
-      /* 4️⃣  Build orderItems (use reference & mainImageUrl) */
+      // 4️⃣ Build orderItems
       const orderItems = items.map((item: any) => ({
         product: item._id,
         reference: item.reference ?? "",
@@ -68,21 +67,19 @@ router.post(
         price: item.price,
       }));
 
-      /* 5️⃣  Save order */
+      // 5️⃣ Save order
       const newOrder = new Order({
         user: userId,
-        address,
+        DeliveryAddress,           // now an array of { Address, DeliverToAddress }
         orderItems,
         paymentMethod,
         deliveryMethod: selectedMethod,
         deliveryCost: deliveryCost || 0,
-        totalDiscount: totalDiscount || 0,
-        total: totalWithShipping,
       });
 
       const savedOrder = await newOrder.save();
 
-      /* 6️⃣  Success */
+      // 6️⃣ Success
       res.status(200).json({ message: "Order created", ref: savedOrder.ref });
     } catch (error) {
       console.error("Error creating order:", error);

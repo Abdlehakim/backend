@@ -1,6 +1,6 @@
 import express, { Request, Response } from 'express';
 import { authenticateToken } from '@/middleware/authenticateToken';
-import Order from '@/models/rder';
+import Order from '@/models/Order';
 
 const router = express.Router();
 

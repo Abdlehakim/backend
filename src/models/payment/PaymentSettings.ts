@@ -14,7 +14,6 @@ interface MethodCfg {
 const MethodSchema = new Schema<MethodCfg>(
   {
     enabled: { type: Boolean, required: true,  default: false },
-    //  Empty strings are OK, so `required` is removed
     label:   { type: String,  trim: true,      default: ""    },
     help:    { type: String,  trim: true,      default: ""    },
   },

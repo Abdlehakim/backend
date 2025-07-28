@@ -10,7 +10,7 @@ const router = Router();
 router.get('/getHeaderData', async (req: Request, res: Response): Promise<void> => {
   try {
     const brandTitles = await CompanyData.findOne()
-      .select("name logoImageUrl")
+      .select("name logoImageUrl phone address city zipcode governorate")
       .exec();
     res.json(brandTitles);
   } catch (err) {

@@ -6,8 +6,8 @@ import mongoose, { Schema, Document, Model, Types } from "mongoose";
 
 export interface ICurrencySettings extends Document {
   _id: Types.ObjectId;
-  primary: string;        // e.g. "TND"  (required, unique in document)
-  secondaries: string[];  // e.g. ["EUR", "USD"] – no duplicates, not = primary
+  primary: string;  
+  secondaries: string[]; 
   updatedAt?: Date;
 }
 
@@ -18,13 +18,13 @@ const CurrencySettingsSchema = new Schema<ICurrencySettings>(
       required: true,
       uppercase: true,
       minlength: 3,
-      maxlength: 3,          // ISO-4217 alpha-3 codes
+      maxlength: 3,         
       trim: true,
     },
     secondaries: {
       type: [String],
       default: [],
-      set: (arr: string[]) => [...new Set(arr.map((c) => c.toUpperCase()))], // dedupe + normalize
+      set: (arr: string[]) => [...new Set(arr.map((c) => c.toUpperCase()))],
     },
   },
   { timestamps: { createdAt: false, updatedAt: true } }

@@ -10,7 +10,7 @@ const router = Router();
 
 /* ------------------------------------------------------------------ */
 router.put(
-  "/payment-currency/update",
+  "/update",
   requirePermission("M_Checkout"),
   async (req: Request, res: Response): Promise<void> => {
     try {

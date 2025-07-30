@@ -76,12 +76,11 @@ import updatePaymentSettings from "./routes/dashboardadmin/payment/payment-setti
 import getPaymentSettings from "./routes/dashboardadmin/payment/payment-settings/getPaymentSettings";
 import getCurrencySettings from "./routes/dashboardadmin/payment/payment-currency/getCurrencySettings";
 import updateCurrencySettings from "./routes/dashboardadmin/payment/payment-currency/updateCurrencySettings";
-
+import getPrimaryCurrency from "./routes/website/currency/getPrimaryCurrency";
 
 /* ----------  Website / checkout ---------- */
 import getAllDeliveryOptionWeb from "./routes/website/checkout/getAllDeliveryOption";
 import getPaymentMethode from "./routes/website/checkout/getPaymentMethode";
-
 
 /* ---------- HomePage, nav, banners ---------- */
 import productRoutes from "./routes/homePage/productsRoutes";
@@ -159,8 +158,10 @@ import deleteDeliveryOption    from "./routes/dashboardadmin/delivery-options/de
 /* payment flags */
 app.use("/api/dashboardadmin/payment/payment-settings", updatePaymentSettings);
 app.use("/api/dashboardadmin/payment/payment-settings", getPaymentSettings);
-app.use("/api/dashboardadmin/payment", getCurrencySettings);
-app.use("/api/dashboardadmin/payment", updateCurrencySettings)
+app.use("/api/dashboardadmin/payment/payment-currency", getCurrencySettings);
+app.use("/api/dashboardadmin/payment/payment-currency", updateCurrencySettings)
+app.use("/api/website/currency/primary", getPrimaryCurrency);
+
 
 
 /* ---------- Dashboard Stock: Products ---------- */

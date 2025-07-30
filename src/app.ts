@@ -143,9 +143,15 @@ import updateRolePermissions from "./routes/dashboardadmin/roles/updateRolePermi
 
 /* ---------- Dashboard Clients & Orders ---------- */
 import getAllClient from "./routes/dashboardadmin/client/getAllClient";
+import findClient from "./routes/dashboardadmin/client/findClient";
 import deleteClient from "./routes/dashboardadmin/client/deleteClient";
 import getAllOrders from "./routes/dashboardadmin/orders/getAllOrders";
 import getOrderById from "./routes/dashboardadmin/orders/getOrderById";
+
+
+/* ---------- Dashboard Clients shops ---------- */
+import getAllClientShop from "./routes/dashboardadmin/client-shop/getAllClientShop";
+import createClientShop from "./routes/dashboardadmin/client-shop/createClientShop";
 
 
 /* ---------- Dashboard Delivery Options ---------- */
@@ -168,6 +174,7 @@ app.use("/api/website/currency/primary", getPrimaryCurrency);
 import addNewProduct from "./routes/dashboardadmin/stock/allproducts/addNewProduct";
 import deleteProduct from "./routes/dashboardadmin/stock/allproducts/deleteProduct";
 import getAllProducts from "./routes/dashboardadmin/stock/allproducts/getAllProducts";
+import searchProduct from "./routes/dashboardadmin/stock/allproducts/searchProduct";
 import updateProduct from "./routes/dashboardadmin/stock/allproducts/updateProduct";
 import getProductById from "./routes/dashboardadmin/stock/allproducts/getProductById";
 
@@ -312,9 +319,16 @@ app.use("/api/dashboardadmin/roles", updateUserRole);
 app.use("/api/dashboardadmin/roles", DeleteRole);
 app.use("/api/dashboardadmin/roles", updateRolePermissions);
 
-/* client management */
+/* client website */
 app.use("/api/dashboardadmin/client", getAllClient);
+app.use("/api/dashboardadmin/client", findClient);
 app.use("/api/dashboardadmin/client", deleteClient);
+
+/* client shop */
+app.use("/api/dashboardadmin/clientShop", createClientShop);
+app.use("/api/dashboardadmin/clientShop", getAllClientShop);
+
+
 
 /* orders */
 app.use("/api/dashboardadmin/orders", getAllOrders);
@@ -331,6 +345,7 @@ app.use("/api/dashboardadmin/delivery-options", deleteDeliveryOption);
 app.use("/api/dashboardadmin/stock/products", addNewProduct);
 app.use("/api/dashboardadmin/stock/products", deleteProduct);
 app.use("/api/dashboardadmin/stock/products", getAllProducts);
+app.use("/api/dashboardadmin/stock/products", searchProduct);
 app.use("/api/dashboardadmin/stock/products", updateProduct);
 app.use("/api/dashboardadmin/stock/products", getProductById);
 

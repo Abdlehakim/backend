@@ -1,3 +1,5 @@
+// src/routes/dashboardadmin/client
+
 import express, { Request, Response } from 'express';
 import Client from '@/models/Client';
 import { requirePermission } from '@/middleware/requireDashboardPermission';

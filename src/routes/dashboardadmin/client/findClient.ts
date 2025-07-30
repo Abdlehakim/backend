@@ -1,10 +1,13 @@
 /* ------------------------------------------------------------------
+   src/routes/dashboardadmin/client/findClient.ts
    GET /api/dashboardadmin/client/find?q=<term>
-   Recherche simultanée dans Client + ClientShop
+   Recherche simultanée dans : Client (accounts) + ClientShop (shops)
+   + ClientCompany (companies)
 ------------------------------------------------------------------ */
 import { Router, Request, Response } from "express";
 import Client from "@/models/Client";
 import ClientShop from "@/models/ClientShop";
+import ClientCompany from "@/models/ClientCompany";
 import { requirePermission } from "@/middleware/requireDashboardPermission";
 
 const router = Router();
@@ -22,18 +25,25 @@ router.get(
         return;
       }
 
-      /** Escape any regex‑special chars to keep search safe */
+      /** Escape special regex chars */
       const rx = new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
 
       /* ---------- parallel queries ---------- */
-      const [accounts, shops] = await Promise.all([
+      const [accounts, shops, companies] = await Promise.all([
         Client.find({ $or: [{ email: rx }, { phone: rx }] })
-          .select("username phone email")   // pas de password
+          .select("username phone email")
           .limit(20)
           .lean(),
 
         ClientShop.find({ $or: [{ name: rx }, { phone: rx }] })
           .select("name phone email")
+          .limit(20)
+          .lean(),
+
+        ClientCompany.find({
+          $or: [{ companyName: rx }, { phone: rx }, { email: rx }],
+        })
+          .select("companyName phone email")
           .limit(20)
           .lean(),
       ]);
@@ -42,7 +52,7 @@ router.get(
       const clients = [
         ...accounts.map((c) => ({
           _id: c._id,
-          name: c.username ?? "—",
+          username: c.username,
           phone: c.phone,
           email: c.email,
           origin: "account" as const,
@@ -52,7 +62,14 @@ router.get(
           name: s.name,
           phone: s.phone,
           email: s.email,
-          origin: "shop" as const,
+          origin: "client shop" as const,
+        })),
+        ...companies.map((co) => ({
+          _id: co._id,
+          name: co.companyName,
+          phone: co.phone,
+          email: co.email,
+          origin: "company" as const,
         })),
       ];
 

@@ -153,6 +153,10 @@ import getOrderById from "./routes/dashboardadmin/orders/getOrderById";
 import getAllClientShop from "./routes/dashboardadmin/client-shop/getAllClientShop";
 import createClientShop from "./routes/dashboardadmin/client-shop/createClientShop";
 
+/* ---------- Dashboard Clients company ---------- */
+import getAllClientCompany from "./routes/dashboardadmin/client-company/getAllClientCompany";
+import createClientCompany from "./routes/dashboardadmin/client-company/createClientCompany";
+
 
 /* ---------- Dashboard Delivery Options ---------- */
 import createDeliveryOption    from "./routes/dashboardadmin/delivery-options/createDeliveryOption";
@@ -327,6 +331,10 @@ app.use("/api/dashboardadmin/client", deleteClient);
 /* client shop */
 app.use("/api/dashboardadmin/clientShop", createClientShop);
 app.use("/api/dashboardadmin/clientShop", getAllClientShop);
+
+/* client Company */
+app.use("/api/dashboardadmin/clientCompany", createClientCompany);
+app.use("/api/dashboardadmin/clientCompany", getAllClientCompany);
 
 
 

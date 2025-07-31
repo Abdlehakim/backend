@@ -158,6 +158,12 @@ import getAllClientCompany from "./routes/dashboardadmin/client-company/getAllCl
 import createClientCompany from "./routes/dashboardadmin/client-company/createClientCompany";
 
 
+/* ---------- Dashboard Clients address ---------- */
+import getAddressByClient from "./routes/dashboardadmin/address/getAddressByClient";
+import updateAddressById from "./routes/dashboardadmin/address/updateAddressById";
+import deleteAddress from "./routes/dashboardadmin/address/deleteAddress";
+import PostAddress from "./routes/dashboardadmin/address/PostAddress";
+
 /* ---------- Dashboard Delivery Options ---------- */
 import createDeliveryOption    from "./routes/dashboardadmin/delivery-options/createDeliveryOption";
 import getAllDeliveryOptions   from "./routes/dashboardadmin/delivery-options/getAllDeliveryOption";
@@ -336,7 +342,11 @@ app.use("/api/dashboardadmin/clientShop", getAllClientShop);
 app.use("/api/dashboardadmin/clientCompany", createClientCompany);
 app.use("/api/dashboardadmin/clientCompany", getAllClientCompany);
 
-
+/* Dashboard client address */
+app.use("/api/dashboardadmin/clientAddress", getAddressByClient);
+app.use("/api/dashboardadmin/clientAddress", updateAddressById);
+app.use("/api/dashboardadmin/clientAddress", deleteAddress);
+app.use("/api/dashboardadmin/clientAddress", PostAddress);
 
 /* orders */
 app.use("/api/dashboardadmin/orders", getAllOrders);

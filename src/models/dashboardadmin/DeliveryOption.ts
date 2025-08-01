@@ -11,6 +11,9 @@ export interface IDeliveryOption extends Document {
   estimatedDays: number;
   isActive: boolean;
 
+  /** ⇩ NOUVEAU : retrait en magasin ? */
+  isPickup: boolean;
+
   createdBy: Types.ObjectId;
   updatedBy?: Types.ObjectId;
 
@@ -48,6 +51,13 @@ const DeliveryOptionSchema = new Schema<IDeliveryOption>(
       type: Boolean,
       default: true,
     },
+
+    // ⇩ NOUVEAU : marque cette option comme « Retrait en magasin »
+    isPickup: {
+      type: Boolean,
+      default: false,
+    },
+
     createdBy: {
       type: Schema.Types.ObjectId,
       ref: "DashboardUser",

@@ -167,6 +167,7 @@ import PostAddress from "./routes/dashboardadmin/address/PostAddress";
 /* ---------- Dashboard Delivery Options ---------- */
 import createDeliveryOption    from "./routes/dashboardadmin/delivery-options/createDeliveryOption";
 import getAllDeliveryOptions   from "./routes/dashboardadmin/delivery-options/getAllDeliveryOption";
+import getDeliveryOptions   from "./routes/dashboardadmin/delivery-options/getDeliveryOptions";
 import getDeliveryOptionById   from "./routes/dashboardadmin/delivery-options/getDeliveryOptionById";
 import updateDeliveryOption    from "./routes/dashboardadmin/delivery-options/updateDeliveryOption";
 import deleteDeliveryOption    from "./routes/dashboardadmin/delivery-options/deleteDeliveryOption";
@@ -220,6 +221,7 @@ import getSubCategorieById from "./routes/dashboardadmin/stock/subcategories/get
 import addNewBoutique from "./routes/dashboardadmin/stock/boutiques/addNewBoutique";
 import deleteBoutique from "./routes/dashboardadmin/stock/boutiques/deleteBoutique";
 import getAllBoutiques from "./routes/dashboardadmin/stock/boutiques/getAllBoutiques";
+import getBoutiques from "./routes/dashboardadmin/stock/boutiques/getBoutiques";
 import updateBoutique from "./routes/dashboardadmin/stock/boutiques/updateBoutique";
 import getBoutiqueById from "./routes/dashboardadmin/stock/boutiques/getBoutiqueById";
 
@@ -355,6 +357,7 @@ app.use("/api/dashboardadmin/orders", getOrderById);
 /* delivery options */
 app.use("/api/dashboardadmin/delivery-options", createDeliveryOption);
 app.use("/api/dashboardadmin/delivery-options", getAllDeliveryOptions);
+app.use("/api/dashboardadmin/delivery-options", getDeliveryOptions);
 app.use("/api/dashboardadmin/delivery-options", getDeliveryOptionById);
 app.use("/api/dashboardadmin/delivery-options", updateDeliveryOption);
 app.use("/api/dashboardadmin/delivery-options", deleteDeliveryOption);
@@ -398,6 +401,7 @@ app.use("/api/dashboardadmin/stock/subcategories", getSubCategorieById);
 app.use("/api/dashboardadmin/stock/boutiques", addNewBoutique);
 app.use("/api/dashboardadmin/stock/boutiques", deleteBoutique);
 app.use("/api/dashboardadmin/stock/boutiques", getAllBoutiques);
+app.use("/api/dashboardadmin/stock/boutiques", getBoutiques);
 app.use("/api/dashboardadmin/stock/boutiques", updateBoutique);
 app.use("/api/dashboardadmin/stock/boutiques", getBoutiqueById);
 

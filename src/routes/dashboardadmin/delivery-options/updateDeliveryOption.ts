@@ -38,6 +38,7 @@ router.put(
         "price",
         "estimatedDays",
         "isActive",
+        "isPickup",      // ⇦ NOUVEAU
       ] as const;
 
       const updateData: any = { updatedBy: userId };
@@ -47,13 +48,15 @@ router.put(
         const incoming = req.body[key];
         if (incoming === undefined) continue; // field not sent
 
-        /* trim strings; numeric conversion for price / estimatedDays */
+        /* trim strings; numeric / boolean conversion */
         let value: any =
           typeof incoming === "string" ? incoming.trim() : incoming;
 
         if (key === "price" || key === "estimatedDays") {
           value = Number(value);
-          if (Number.isNaN(value)) continue; // ignore NaN inputs
+          if (Number.isNaN(value)) continue;           // ignore NaN inputs
+        } else if (key === "isActive" || key === "isPickup") {
+          value = Boolean(value);                      // ensure boolean
         }
 
         if (value === "" || (existing as any)[key] === value) continue;
@@ -62,10 +65,14 @@ router.put(
         hasChanges = true;
       }
 
+      /* si l’option devient « pickup » et qu’on n’a pas touché à estimatedDays,
+         on l’aligne automatiquement sur 0  */
+      if (updateData.isPickup === true && updateData.estimatedDays === undefined) {
+        updateData.estimatedDays = 0;
+      }
+
       if (!hasChanges) {
-        res
-          .status(400)
-          .json({ message: "No valid fields provided for update." });
+        res.status(400).json({ message: "No valid fields provided for update." });
         return;
       }
 
@@ -88,16 +95,14 @@ router.put(
     } catch (err: any) {
       console.error("UpdateDeliveryOption Error:", err);
 
-      // duplicate “name” (unique index)
       if (err.code === 11000) {
-        res
-          .status(400)
-          .json({ message: "Delivery option name already exists." });
+        // duplicate “name” (unique index)
+        res.status(400).json({ message: "Delivery option name already exists." });
         return;
       }
 
-      // mongoose validation errors
       if (err.name === "ValidationError") {
+        // mongoose validation errors
         const messages = Object.values(err.errors).map((e: any) => e.message);
         res.status(400).json({ message: messages.join(" ") });
         return;

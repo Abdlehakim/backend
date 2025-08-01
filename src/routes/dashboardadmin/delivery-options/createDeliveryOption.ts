@@ -13,15 +13,16 @@ const router = Router();
 /* ------------------------------------------------------------------ */
 router.post(
   "/create",
-  requirePermission("M_Checkout"),          // adjust to your permission scheme
+  requirePermission("M_Checkout"), // ajustez si nécessaire
   async (req: Request, res: Response): Promise<void> => {
     try {
-      /* ---------- 1) Extract + trim inputs ---------- */
-      const name          = ((req.body.name as string)          || "").trim();
-      const description   = ((req.body.description as string)   || "").trim();
-      const priceRaw      =  req.body.price;
-      const daysRaw       =  req.body.estimatedDays;
-      const isActiveRaw   =  req.body.isActive;
+      /* ---------- 1) Extraction + trim des entrées ---------- */
+      const name        = ((req.body.name as string)        || "").trim();
+      const description = ((req.body.description as string) || "").trim();
+      const priceRaw    =  req.body.price;
+      const daysRaw     =  req.body.estimatedDays;
+      const isActiveRaw =  req.body.isActive;
+      const isPickupRaw =  req.body.isPickup;        // ⇦ NOUVEAU
 
       const userId = req.dashboardUser?._id;
       if (!userId) {
@@ -29,22 +30,31 @@ router.post(
         return;
       }
 
-      /* ---------- 2) Required-field check ---------- */
-      if (!name || priceRaw === undefined || daysRaw === undefined) {
+      /* ---------- 2) Vérification des champs obligatoires ---------- */
+      if (!name || priceRaw === undefined) {
         res.status(400).json({
           success: false,
-          message: "Missing required fields: name, price, estimatedDays",
+          message: "Missing required fields: name, price",
+        });
+        return;
+      }
+      /* estimatedDays est exigé sauf si l’option est un retrait magasin */
+      if (!Boolean(isPickupRaw) && daysRaw === undefined) {
+        res.status(400).json({
+          success: false,
+          message: "Missing required field: estimatedDays",
         });
         return;
       }
 
-      /* ---------- 3) Build + save document ---------- */
+      /* ---------- 3) Construction + sauvegarde du document ---------- */
       const option = new DeliveryOption({
         name,
         description: description || undefined,
         price: Number(priceRaw),
-        estimatedDays: Number(daysRaw),
+        estimatedDays: Boolean(isPickupRaw) ? 0 : Number(daysRaw ?? 0),
         isActive: isActiveRaw !== undefined ? Boolean(isActiveRaw) : true,
+        isPickup: isPickupRaw !== undefined ? Boolean(isPickupRaw) : false, // ⇦ NOUVEAU
         createdBy: userId,
       });
 

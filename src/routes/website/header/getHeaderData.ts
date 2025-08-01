@@ -6,7 +6,7 @@ import CompanyData from "@/models/websitedata/companyData";
 
 const router = Router();
 
-// GET /routes/website/header/getHeaderData.ts
+// GET /routes/website/header/getHeaderData
 router.get('/getHeaderData', async (req: Request, res: Response): Promise<void> => {
   try {
     const brandTitles = await CompanyData.findOne()

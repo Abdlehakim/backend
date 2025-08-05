@@ -1,6 +1,6 @@
-// routes/dashboardadmin/stock/boutiques/updateBoutique
+// routes/dashboardadmin/stock/magasins/updateBoutique
 import { Router, Request, Response } from "express";
-import Boutique from "@/models/stock/Boutique";
+import Magasin from "@/models/stock/Magasin";
 import { requirePermission } from "@/middleware/requireDashboardPermission";
 import { memoryUpload } from "@/lib/multer";
 import { uploadToCloudinary } from "@/lib/uploadToCloudinary";
@@ -9,7 +9,7 @@ import cloudinary from "@/lib/cloudinary";
 const router = Router();
 
 /**
- * PUT /api/dashboardadmin/stock/boutiques/update/:boutiqueId
+ * PUT /api/dashboardadmin/stock/magasins/update/:boutiqueId
  */
 router.put(
   "/update/:boutiqueId",
@@ -25,10 +25,10 @@ router.put(
     }
 
     try {
-      // 1) fetch existing boutique
-      const existing = await Boutique.findById(boutiqueId);
+      // 1) fetch existing magasin
+      const existing = await Magasin.findById(boutiqueId);
       if (!existing) {
-        res.status(404).json({ message: "Boutique not found." });
+        res.status(404).json({ message: "Magasin not found." });
         return;
       }
 
@@ -83,28 +83,28 @@ router.put(
           }
         }
         // upload new image
-        const uploaded = await uploadToCloudinary(req.file, "boutiques");
+        const uploaded = await uploadToCloudinary(req.file, "magasins");
         updateData.image = uploaded.secureUrl;
         updateData.imageId = uploaded.publicId;
       }
 
       // 4) apply the update
-      const updatedBoutique = await Boutique.findByIdAndUpdate(
+      const updatedBoutique = await Magasin.findByIdAndUpdate(
         boutiqueId,
         updateData,
         { new: true, runValidators: true }
       );
       if (!updatedBoutique) {
-        res.status(404).json({ message: "Boutique not found after update." });
+        res.status(404).json({ message: "Magasin not found after update." });
         return;
       }
 
       res.json({
-        message: "Boutique updated successfully.",
-        boutique: updatedBoutique,
+        message: "Magasin updated successfully.",
+        magasin: updatedBoutique,
       });
     } catch (err: any) {
-      console.error("Update Boutique Error:", err);
+      console.error("Update Magasin Error:", err);
       if (err.code === 11000) {
         res
           .status(400)

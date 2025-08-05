@@ -1,13 +1,13 @@
-// src/pages/api/dashboardadmin/stock/boutiques/delete.ts
+// src/pages/api/dashboardadmin/stock/magasins/delete.ts
 import { Router, Request, Response } from "express";
-import Boutique from "@/models/stock/Boutique";
+import Magasin from "@/models/stock/Magasin";
 import { requirePermission } from "@/middleware/requireDashboardPermission";
 import cloudinary from "@/lib/cloudinary";
 
 const router = Router();
 
 /**
- * DELETE /api/dashboardadmin/stock/boutiques/delete/:boutiqueId
+ * DELETE /api/dashboardadmin/stock/magasins/delete/:boutiqueId
  * — deletes the DB record and the Cloudinary image
  */
 router.delete(
@@ -18,9 +18,9 @@ router.delete(
       const { boutiqueId } = req.params;
 
       // 1) remove the DB record (and get back its data)
-      const deleted = await Boutique.findByIdAndDelete(boutiqueId);
+      const deleted = await Magasin.findByIdAndDelete(boutiqueId);
       if (!deleted) {
-        res.status(404).json({ message: "Boutique not found." });
+        res.status(404).json({ message: "Magasin not found." });
         return;
       }
 
@@ -31,14 +31,14 @@ router.delete(
         } catch (cloudErr) {
           console.error("Cloudinary deletion error:", cloudErr);
           // (optional) you could choose to return a 500 here,
-          // but usually you'd still consider the boutique deleted.
+          // but usually you'd still consider the magasin deleted.
         }
       }
 
       // 3) respond success
-      res.json({ message: "Boutique and its image have been deleted." });
+      res.json({ message: "Magasin and its image have been deleted." });
     } catch (err) {
-      console.error("Delete Boutique Error:", err);
+      console.error("Delete Magasin Error:", err);
       res.status(500).json({ message: "Internal server error." });
     }
   }

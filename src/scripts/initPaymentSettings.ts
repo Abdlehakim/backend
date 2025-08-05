@@ -1,28 +1,26 @@
-import PaymentSettings from "@/models/payment/PaymentSettings";
+// src/scripts/initPaymentSettings.ts
 
-/** Ensure the one-and-only PaymentSettings document exists. */
-export default async function initPaymentSettings() {
-  let doc = await PaymentSettings.findOne();
-  if (!doc) {
-    doc = await PaymentSettings.create({
-      paypal: {
-        enabled: false,
-        label:   "",
-        help:    "",
-      },
-      stripe: {
-        enabled: false,
-        label:   "",
-        help:    "",
-      },
-      cashOnDelivery: {
-        enabled: false,
-        label:   "",
-        help:    "",
-      },
-    });
+import PaymentMethod from "@/models/payment/PaymentMethods";
+import {
+  PAYMENT_METHOD_KEYS,
+  EMPTY_METHOD_CFG,
+  PaymentMethodKey,
+} from "@/constants/paymentSettingsData";
 
-    console.log("✅  PaymentSettings seeded (all methods OFF, labels empty)");
+/** Seed the PaymentMethod collection with one doc per method */
+export default async function initPaymentSettings(): Promise<void> {
+  for (const key of PAYMENT_METHOD_KEYS) {
+    const exists = await PaymentMethod.findOne({ name: key });
+
+    if (!exists) {
+      await PaymentMethod.create({
+        name: key,
+        ...EMPTY_METHOD_CFG,
+      });
+
+      console.log(`✅ PaymentMethod "${key}" created`);
+    }
   }
-  return doc;
+
+  console.log("✅ All payment methods initialized.");
 }

@@ -1,12 +1,12 @@
-// src/routes/dashboardadmin/stock/boutiques/getBoutiqueById.ts
+// src/routes/dashboardadmin/stock/magasins/getBoutiqueById.ts
 import { Router, Request, Response } from "express";
-import Boutique from "@/models/stock/Boutique";
+import Magasin from "@/models/stock/Magasin";
 import { requirePermission } from "@/middleware/requireDashboardPermission";
 
 const router = Router();
 
 /**
- * GET /api/dashboardadmin/stock/boutiques/:boutiqueId
+ * GET /api/dashboardadmin/stock/magasins/:boutiqueId
  */
 router.get(
   "/:boutiqueId",
@@ -14,19 +14,19 @@ router.get(
   async (req: Request, res: Response): Promise<void> => {
     try {
       const { boutiqueId } = req.params;
-      const boutique = await Boutique
+      const magasin = await Magasin
         .findById(boutiqueId)
         .populate("createdBy updatedBy", "username")
         .lean();
 
-      if (!boutique) {
-        res.status(404).json({ message: "Boutique not found." });
+      if (!magasin) {
+        res.status(404).json({ message: "Magasin not found." });
         return;
       }
 
-      res.json(boutique);
+      res.json(magasin);
     } catch (err) {
-      console.error("Fetch Boutique Error:", err);
+      console.error("Fetch Magasin Error:", err);
       res.status(500).json({ message: "Internal server error." });
     }
   }

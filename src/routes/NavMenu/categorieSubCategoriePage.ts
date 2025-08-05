@@ -9,7 +9,7 @@ import Categorie    from "@/models/stock/Categorie";
 import Subcategorie from "@/models/stock/SubCategorie";
 import Product      from "@/models/stock/Product";
 import Brand        from "@/models/stock/Brand";
-import Boutique     from "@/models/stock/Boutique";
+import Magasin     from "@/models/stock/Magasin";
 
 const router = Router();
 
@@ -121,7 +121,7 @@ router.get("/products/:slug", async (req, res) => {
 
     const {
       brand,
-      boutique,
+      magasin,
       subCat,
       priceMin,
       priceMax,
@@ -143,7 +143,7 @@ router.get("/products/:slug", async (req, res) => {
     };
 
     if (brand)    match.brand        = new Types.ObjectId(brand);
-    if (boutique) match.boutique     = new Types.ObjectId(boutique);
+    if (magasin) match.magasin     = new Types.ObjectId(magasin);
     if (subCat)   match.subcategorie = new Types.ObjectId(subCat);
 
     /* … rest of the aggregation pipeline stays identical … */
@@ -185,7 +185,7 @@ router.get("/products/:slug", async (req, res) => {
           categorie: 1,
           subcategorie: 1,
           brand: 1,
-          boutique: 1,
+          magasin: 1,
         },
       },
       { $lookup: { from: "categories",  localField: "categorie",   foreignField: "_id", as: "categorie" } },
@@ -194,8 +194,8 @@ router.get("/products/:slug", async (req, res) => {
       { $unwind: { path: "$subcategorie", preserveNullAndEmptyArrays: true } },
       { $lookup: { from: "brands",      localField: "brand",      foreignField: "_id", as: "brand" } },
       { $unwind: { path: "$brand",      preserveNullAndEmptyArrays: true } },
-      { $lookup: { from: "boutiques",   localField: "boutique",   foreignField: "_id", as: "boutique" } },
-      { $unwind: { path: "$boutique",   preserveNullAndEmptyArrays: true } }
+      { $lookup: { from: "magasins",   localField: "magasin",   foreignField: "_id", as: "magasin" } },
+      { $unwind: { path: "$magasin",   preserveNullAndEmptyArrays: true } }
     );
     const products = await Product.aggregate(pipeline).exec();
     res.json(products);
@@ -225,17 +225,17 @@ router.get("/products/:slug/options", async (req, res) => {
 
     const [brandIds, boutiqueIds, subCatIds] = await Promise.all([
       Product.distinct("brand",        match),
-      Product.distinct("boutique",     match),
+      Product.distinct("magasin",     match),
       Product.distinct("subcategorie", match),
     ]);
 
-    const [brands, boutiques, subcategories] = await Promise.all([
+    const [brands, magasins, subcategories] = await Promise.all([
       Brand.find({ _id: { $in: brandIds } }).select("_id name").lean(),
-      Boutique.find({ _id: { $in: boutiqueIds } }).select("_id name").lean(),
+      Magasin.find({ _id: { $in: boutiqueIds } }).select("_id name").lean(),
       Subcategorie.find({ _id: { $in: subCatIds } }).select("_id name").lean(),
     ]);
 
-    res.json({ brands, boutiques, subcategories });
+    res.json({ brands, magasins, subcategories });
   } catch (err) {
     console.error("Error fetching product options:", err);
     res.status(500).json({ error: "Internal server error" });

@@ -1,47 +1,64 @@
 // routes/dashboardadmin/payment/payment-settings/updatePaymentSettings.ts
+
 import { Router, Request, Response } from "express";
-import PaymentSettings from "@/models/payment/PaymentSettings";
+import PaymentMethod from "@/models/payment/PaymentMethods";
 import { requirePermission } from "@/middleware/requireDashboardPermission";
+import { PaymentMethodKey, PAYMENT_METHOD_KEYS } from "@/constants/paymentSettingsData";
 
 const router = Router();
-type Sub  = { enabled?: boolean; label?: string; help?: string };
-type Body = { paypal?: Sub; stripe?: Sub; cashOnDelivery?: Sub };
 
+type Sub = { enabled?: boolean; label?: string; help?: string };
+type Body = Partial<Record<PaymentMethodKey, Sub>>;
+
+/* ------------------------------------------------------------------ */
+/*  PUT /api/dashboardadmin/payment-settings/update                   */
+/* ------------------------------------------------------------------ */
 router.put(
   "/update",
   requirePermission("M_Checkout"),
   async (req: Request<{}, {}, Body>, res: Response): Promise<void> => {
-    // --- reject empty body ---
-    if (!req.body.paypal && !req.body.stripe && !req.body.cashOnDelivery) {
-      res.status(400).json({ message: "No payment fields provided." });
+    const updates = Object.entries(req.body);
+
+    if (updates.length === 0) {
+      res.status(400).json({ message: "No payment method updates provided." });
       return;
     }
 
-    // --- build one $set object with dot-paths only ---
-    const $set: Record<string, unknown> = {};
-    (["paypal", "stripe", "cashOnDelivery"] as const).forEach((k) => {
-      const sub = (req.body as Body)[k];
-      if (!sub) return;
-      Object.entries(sub).forEach(([field, val]) => {
-        if (val !== undefined) $set[`${k}.${field}`] = val;
-      });
-    });
-
     try {
-      const paymentSettings = await PaymentSettings.findOneAndUpdate(
-        {},
-        { $set },
-        {
-          new: true,
-          upsert: true,
-          // ↓↓↓ seeds required fields from schema, so no full-object $setOnInsert needed
-          setDefaultsOnInsert: true,      // MongoDB 4.2+  :contentReference[oaicite:2]{index=2}
-          runValidators: true,
-          context: "query",
-        }
-      ).lean();
+      const updatedMethods = [];
 
-      res.json({ message: "Payment settings updated.", paymentSettings });
+      for (const [name, changes] of updates) {
+        if (!PAYMENT_METHOD_KEYS.includes(name as PaymentMethodKey)) {
+          continue;
+        }
+
+        const updateFields: Record<string, any> = {};
+        if (changes) {
+          if (changes.enabled !== undefined) updateFields.enabled = changes.enabled;
+          if (changes.label !== undefined) updateFields.label = changes.label;
+          if (changes.help !== undefined) updateFields.help = changes.help;
+        }
+
+        const updated = await PaymentMethod.findOneAndUpdate(
+          { name },
+          { $set: updateFields },
+          { new: true, runValidators: true }
+        ).lean();
+
+        if (updated) {
+          updatedMethods.push(updated);
+        }
+      }
+
+      if (updatedMethods.length === 0) {
+        res.status(404).json({ message: "No valid payment methods were updated." });
+        return;
+      }
+
+      res.json({
+        message: "Payment methods updated successfully.",
+        updatedMethods,
+      });
     } catch (err) {
       console.error("UpdatePaymentSettings Error:", err);
       res.status(500).json({ message: "Internal server error." });

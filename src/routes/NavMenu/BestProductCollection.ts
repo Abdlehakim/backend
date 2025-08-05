@@ -16,7 +16,7 @@ router.get(
         .lean()
         .populate("categorie", " name slug")
         .populate("subcategorie", "name slug")
-        .populate("boutique", " name")
+        .populate("magasin", " name")
         .populate("brand", " name ");
 
       res.status(200).json(BestProductCollection);

@@ -1,4 +1,4 @@
-// models/Boutique.ts
+// models/Magasin.ts
 import mongoose, { Schema, Document, Model, Types } from "mongoose";
 import crypto from "crypto";
 
@@ -83,7 +83,7 @@ BoutiqueSchema.pre<IBoutique>("validate", async function (next) {
 
     do {
       ref = generateBoutiqueRef();
-      exists = await mongoose.models.Boutique.findOne({ reference: ref });
+      exists = await mongoose.models.Magasin.findOne({ reference: ref });
     } while (exists);
 
     this.reference = ref;
@@ -91,8 +91,8 @@ BoutiqueSchema.pre<IBoutique>("validate", async function (next) {
   next();
 });
 
-const Boutique: Model<IBoutique> =
-  mongoose.models.Boutique ||
-  mongoose.model<IBoutique>("Boutique", BoutiqueSchema);
+const Magasin: Model<IBoutique> =
+  mongoose.models.Magasin ||
+  mongoose.model<IBoutique>("Magasin", BoutiqueSchema);
 
-export default Boutique;
+export default Magasin;

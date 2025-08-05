@@ -8,7 +8,7 @@ import { Types } from "mongoose";
 
 import Categorie    from "@/models/stock/Categorie";
 import Subcategorie from "@/models/stock/SubCategorie";
-import Boutique     from "@/models/stock/Boutique";
+import Magasin     from "@/models/stock/Magasin";
 import Brand        from "@/models/stock/Brand";
 import Product      from "@/models/stock/Product";
 import SpecialPageBanner from "@/models/websitedata/specialPageBanner";
@@ -17,7 +17,7 @@ const router = Router();
 
 /* ------------------------------------------------------------------ */
 /*  GET /api/NavMenu/ProductPromotion/products                        */
-/*    ?limit=8&skip=0&brand=<id>&boutique=<id>&categorie=<id>         */
+/*    ?limit=8&skip=0&brand=<id>&magasin=<id>&categorie=<id>         */
 /*    &subCat=<id>&priceMin=100&priceMax=5000&sort=asc                */
 /* ------------------------------------------------------------------ */
 router.get("/products", async (req: Request, res: Response) => {
@@ -27,7 +27,7 @@ router.get("/products", async (req: Request, res: Response) => {
 
     const {
       brand,
-      boutique,
+      magasin,
       categorie,
       subCat,
       priceMin,
@@ -38,7 +38,7 @@ router.get("/products", async (req: Request, res: Response) => {
     /* ---------- base match ---------- */
     const match: any = { vadmin: "approve", statuspage: "promotion" };
     if (brand)     match.brand        = new Types.ObjectId(brand);
-    if (boutique)  match.boutique     = new Types.ObjectId(boutique);
+    if (magasin)  match.magasin     = new Types.ObjectId(magasin);
     if (categorie) match.categorie    = new Types.ObjectId(categorie);
     if (subCat)    match.subcategorie = new Types.ObjectId(subCat);
 
@@ -81,7 +81,7 @@ router.get("/products", async (req: Request, res: Response) => {
           categorie: 1,
           subcategorie: 1,
           brand: 1,
-          boutique: 1,
+          magasin: 1,
         },
       },
       { $lookup: { from: "categories",    localField: "categorie",   foreignField: "_id", as: "categorie" } },
@@ -90,8 +90,8 @@ router.get("/products", async (req: Request, res: Response) => {
       { $unwind: { path: "$subcategorie", preserveNullAndEmptyArrays: true } },
       { $lookup: { from: "brands",        localField: "brand",      foreignField: "_id", as: "brand" } },
       { $unwind: { path: "$brand",        preserveNullAndEmptyArrays: true } },
-      { $lookup: { from: "boutiques",     localField: "boutique",   foreignField: "_id", as: "boutique" } },
-      { $unwind: { path: "$boutique",     preserveNullAndEmptyArrays: true } },
+      { $lookup: { from: "magasins",     localField: "magasin",   foreignField: "_id", as: "magasin" } },
+      { $unwind: { path: "$magasin",     preserveNullAndEmptyArrays: true } },
     );
 
     const products = await Product.aggregate(pipeline).exec();
@@ -104,7 +104,7 @@ router.get("/products", async (req: Request, res: Response) => {
 
 /* ------------------------------------------------------------------ */
 /*  GET /api/NavMenu/ProductPromotion/products/options                */
-/*  → lists distinct brands, boutiques, categories, subcats           */
+/*  → lists distinct brands, magasins, categories, subcats           */
 /* ------------------------------------------------------------------ */
 router.get("/products/options", async (_req: Request, res: Response) => {
   try {
@@ -112,19 +112,19 @@ router.get("/products/options", async (_req: Request, res: Response) => {
 
     const [brandIds, boutiqueIds, catIds, subCatIds] = await Promise.all([
       Product.distinct("brand",        match),
-      Product.distinct("boutique",     match),
+      Product.distinct("magasin",     match),
       Product.distinct("categorie",    match),
       Product.distinct("subcategorie", match),
     ]);
 
-    const [brands, boutiques, categories, subcategories] = await Promise.all([
+    const [brands, magasins, categories, subcategories] = await Promise.all([
       Brand.find({ _id: { $in: brandIds } }).select("_id name").lean(),
-      Boutique.find({ _id: { $in: boutiqueIds } }).select("_id name").lean(),
+      Magasin.find({ _id: { $in: boutiqueIds } }).select("_id name").lean(),
       Categorie.find({ _id: { $in: catIds } }).select("_id name").lean(),
       Subcategorie.find({ _id: { $in: subCatIds } }).select("_id name").lean(),
     ]);
 
-    res.json({ brands, boutiques, categories, subcategories });
+    res.json({ brands, magasins, categories, subcategories });
   } catch (err) {
     console.error("Error fetching promotion filter options:", err);
     res.status(500).json({ error: "Error fetching promotion options" });

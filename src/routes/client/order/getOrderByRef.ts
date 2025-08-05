@@ -36,7 +36,7 @@ router.get(
       }
 
       // 4. Ensure the order belongs to this user
-      if (order.user.toString() !== userId.toString()) {
+      if (order.client.toString() !== userId.toString()) {
         res.status(403).json({ error: 'You do not have permission to view this order.' });
         return;
       }

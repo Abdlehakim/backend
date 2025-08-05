@@ -2,13 +2,13 @@
 
 
 import { Router, Request, Response } from "express";
-import Boutique from "@/models/stock/Boutique";
+import Magasin from "@/models/stock/Magasin";
 import { requirePermission } from "@/middleware/requireDashboardPermission";
 
 const router = Router();
 
 /**
- * GET /api/dashboardadmin/stock/boutiques
+ * GET /api/dashboardadmin/stock/magasins
  * Returns: name, image, phoneNumber, localisation, createdBy, createdAt
  */
 router.get(
@@ -16,15 +16,15 @@ router.get(
   requirePermission("M_Stock"),
   async (req: Request, res: Response): Promise<void> => {
     try {
-      const boutiques = await Boutique.find()
+      const magasins = await Magasin.find()
         .select("name reference createdBy createdAt vadmin updatedBy updatedAt")
         .populate("createdBy updatedBy", "username")
         .sort({ createdAt: -1 })
         .lean();
 
-      res.json({ boutiques });
+      res.json({ magasins });
     } catch (err) {
-      console.error("Get Boutiques Error:", err);
+      console.error("Get Magasins Error:", err);
       res.status(500).json({ message: "Internal server error." });
     }
   }

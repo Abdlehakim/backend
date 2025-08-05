@@ -10,7 +10,7 @@ const router = Router();
 
 /**
  * GET /api/dashboardadmin/getAllClientShops
- * Renvoie tous les ClientShop (clients boutique)
+ * Renvoie tous les ClientShop (clients magasin)
  */
 router.get(
   "/",

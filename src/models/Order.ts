@@ -1,20 +1,35 @@
 /* ------------------------------------------------------------------
-   Order model – updated DeliveryAddress and removed totals
+   models/Order.ts
+   Order model – supports attributes, pickup magasin, and expected date
+   Updated: make `client` a generic ObjectId (no fixed ref)
+            Added: store client.name on each order
+            pickupMagasin now truly optional (no default sub-document or _id)
 ------------------------------------------------------------------ */
 import mongoose, { Schema, Document, Model } from "mongoose";
 import crypto from "crypto";
 import { IClient } from "./Client";
+import { IClientShop } from "./ClientShop";
+import { IClientCompany } from "./ClientCompany";
 
-/* ---------- interface ---------- */
+interface IOrderItemAttribute {
+  attribute: mongoose.Types.ObjectId;
+  value: string;
+}
+
 export interface IOrder extends Document {
   ref?: string;
-  user: IClient | string;
+  client: mongoose.Types.ObjectId | IClient | IClientShop | IClientCompany;
+  clientName: string;
   DeliveryAddress: Array<{
     Address: mongoose.Schema.Types.ObjectId;
     DeliverToAddress: string;
   }>;
+  pickupMagasin?: {
+    Magasin: mongoose.Types.ObjectId;
+    MagasinAddress: string;
+  };
   orderItems: Array<{
-    product: mongoose.Schema.Types.ObjectId;
+    product: mongoose.Types.ObjectId;
     reference: string;
     name: string;
     tva: number;
@@ -22,68 +37,82 @@ export interface IOrder extends Document {
     mainImageUrl: string;
     discount: number;
     price: number;
+    attributes?: IOrderItemAttribute[];
   }>;
   paymentMethod?: string;
   deliveryMethod: string;
   deliveryCost?: number;
+  expectedDeliveryDate?: Date;
   orderStatus?: string;
   createdAt?: Date;
   updatedAt?: Date;
 }
 
-/* ---------- schema ---------- */
+/* Sub-schema for pickupMagasin, with _id disabled */
+const PickupMagasinSchema = new Schema(
+  {
+    Magasin: { type: Schema.Types.ObjectId, ref: "Magasin" },
+    MagasinAddress: { type: String, trim: true },
+  },
+  { _id: false }
+);
+
 const OrderSchema = new Schema<IOrder>(
   {
-    user: { type: Schema.Types.ObjectId, ref: "Client", required: true },
+    client: {
+      type: Schema.Types.ObjectId,
+      required: true,
+    },
+    clientName: {
+      type: String,
+      required: true,
+      trim: true,
+    },
     ref: { type: String },
 
-    // Updated DeliveryAddress array
     DeliveryAddress: {
       type: [
         {
-          Address: { type: Schema.Types.ObjectId, ref: "Address", required: true },
-          DeliverToAddress: { type: String, required: true, trim: true },
-        },
+          Address: { type: Schema.Types.ObjectId, ref: "Address" },
+          DeliverToAddress: { type: String, trim: true },
+        }
       ],
-      validate: {
-        validator(arr: unknown) {
-          return Array.isArray(arr) && arr.length > 0;
-        },
-        message: "Order must contain at least one delivery address.",
-      },
+      default: []
     },
 
-    orderItems: {
-      type: [
-        {
-          product: { type: Schema.Types.ObjectId, ref: "Product", required: true },
-          reference: { type: String, required: true, trim: true },
-          name: { type: String, required: true, trim: true },
-          tva: { type: Number, default: 0, min: 0 },
-          quantity: { type: Number, required: true, min: 1 },
-          mainImageUrl: { type: String, default: "" },
-          discount: { type: Number, default: 0, min: 0 },
-          price: { type: Number, required: true, min: 0 },
-        },
-      ],
-      validate: {
-        validator(arr: unknown) {
-          return Array.isArray(arr) && arr.length > 0;
-        },
-        message: "Order must contain at least one item.",
-      },
+    pickupMagasin: {
+      type: PickupMagasinSchema,
+      // no default → omitted entirely when not set
     },
+
+    orderItems: [
+      {
+        product: { type: Schema.Types.ObjectId, ref: "Product", required: true },
+        reference: { type: String, required: true, trim: true },
+        name: { type: String, required: true, trim: true },
+        tva: { type: Number, default: 0, min: 0 },
+        quantity: { type: Number, required: true, min: 1 },
+        mainImageUrl: { type: String, default: "" },
+        discount: { type: Number, default: 0, min: 0 },
+        price: { type: Number, required: true, min: 0 },
+        attributes: [
+          {
+            attribute: { type: Schema.Types.ObjectId, ref: "Attribute", required: true },
+            value: { type: String, required: true, trim: true },
+          }
+        ]
+      }
+    ],
 
     paymentMethod: { type: String },
     deliveryMethod: { type: String, required: true },
     deliveryCost: { type: Number, default: 0, min: 0 },
-
-    orderStatus: { type: String, default: "Processing" },
+    expectedDeliveryDate: { type: Date },
+    orderStatus: { type: String, default: "Processing" }
   },
   { timestamps: true }
 );
 
-/* --- hooks --- */
 OrderSchema.pre<IOrder>("save", function (next) {
   if (!this.ref) {
     this.ref = `ORDER-${crypto.randomBytes(4).toString("hex")}`;
@@ -91,7 +120,6 @@ OrderSchema.pre<IOrder>("save", function (next) {
   next();
 });
 
-/* ---------- model ---------- */
 const Order: Model<IOrder> =
   mongoose.models.Order || mongoose.model<IOrder>("Order", OrderSchema);
 

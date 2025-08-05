@@ -1,7 +1,7 @@
 
 /* ------------------------------------------------------------------
    models/ClientShop.ts
-   Schéma Mongoose (TypeScript) pour les « clients boutique ».
+   Schéma Mongoose (TypeScript) pour les « clients magasin ».
 ------------------------------------------------------------------ */
 import mongoose, { Document, Model, Schema } from "mongoose";
 

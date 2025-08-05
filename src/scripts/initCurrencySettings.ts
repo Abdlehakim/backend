@@ -7,7 +7,7 @@ import CurrencySettings from "@/models/payment/CurrencySettings";
  * Call this once at server start-up (just like initPaymentSettings).
  */
 export default async function initCurrencySettings() {
-  let doc = await CurrencySettings.findOne(); // returns null if missing
+  let doc = await CurrencySettings.findOne();
   if (!doc) {
     doc = await CurrencySettings.create({
       primary: "TND",

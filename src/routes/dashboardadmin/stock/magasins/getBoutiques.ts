@@ -1,17 +1,17 @@
 /* ------------------------------------------------------------------
    src/routes/stock/getBoutiques.ts
-   GET /api/stock/boutiques
-   Liste publique (mais protégée) des boutiques approuvées
+   GET /api/stock/magasins
+   Liste publique (mais protégée) des magasins approuvées
 ------------------------------------------------------------------ */
 import { Router, Request, Response } from "express";
-import Boutique from "@/models/stock/Boutique";
+import Magasin from "@/models/stock/Magasin";
 import { requirePermission } from "@/middleware/requireDashboardPermission"; 
 const router = Router();
 
 /**
- * GET /api/stock/boutiques
+ * GET /api/stock/magasins
  * Permissions : M_Stock
- * Renvoie les boutiques où vadmin === "approve" avec :
+ * Renvoie les magasins où vadmin === "approve" avec :
  *   - _id
  *   - name
  *   - phoneNumber? (facultatif)
@@ -23,14 +23,14 @@ router.get(
   requirePermission("M_Stock"),                // ⇦ AJOUTÉ
   async (_req: Request, res: Response): Promise<void> => {
     try {
-      const boutiques = await Boutique.find({ vadmin: "approve" })
+      const magasins = await Magasin.find({ vadmin: "approve" })
         .select("_id name phoneNumber address city")
         .sort({ name: 1 })
         .lean();
 
-      res.json({ boutiques });
+      res.json({ magasins });
     } catch (err) {
-      console.error("Get Boutiques Error:", err);
+      console.error("Get Magasins Error:", err);
       res.status(500).json({ message: "Internal server error." });
     }
   }

@@ -42,12 +42,12 @@ router.get(
             "averageRating",
             "categorie",
             "brand",
-            "boutique",
+            "magasin",
           ].join(" ")
         )
         .populate("categorie", "name slug")
         .populate("brand", "name")
-        .populate("boutique", "name")
+        .populate("magasin", "name")
         .limit(lim)
         .lean();
 

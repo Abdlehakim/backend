@@ -10,7 +10,7 @@ const router = express.Router();
 
 /**
  * GET /api/dashboardadmin/orders
- * Returns all orders with populated user and address.
+ * Returns all orders with populated client and address.
  */
 
 router.get(
@@ -20,7 +20,7 @@ router.get(
     try {
       const orders = await Order.find()
       .sort({ createdAt: -1 })
-        .populate('user')
+        .populate('client')
       res.status(200).json({ orders });
     } catch (error) {
       console.error('Get Orders Error:', error);

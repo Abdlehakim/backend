@@ -40,7 +40,7 @@ router.post(
       const description  = ((req.body.description as string) || "").trim();
       const categorie    = req.body.categorie as string;
       const subcategorie = (req.body.subcategorie as string) || null;
-      const boutique     = (req.body.boutique     as string) || null;
+      const magasin     = (req.body.magasin     as string) || null;
       const brand        = (req.body.brand        as string) || null;
 
       const stock        = parseInt(req.body.stock as string, 10)  || 0;
@@ -201,7 +201,7 @@ router.post(
         description,
         categorie,
         subcategorie,
-        boutique,
+        magasin,
         brand,
         stock,
         price,

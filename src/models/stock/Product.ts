@@ -15,7 +15,7 @@ export interface IProduct extends Document {
 
   categorie: Types.ObjectId;
   subcategorie?: Types.ObjectId | null;
-  boutique?: Types.ObjectId | null;
+  magasin?: Types.ObjectId | null;
   brand?: Types.ObjectId | null;
 
   stock: number;
@@ -92,7 +92,7 @@ const ProductSchema = new Schema<IProduct>(
 
     categorie: { type: Schema.Types.ObjectId, ref: "Categorie", required: true },
     subcategorie: { type: Schema.Types.ObjectId, ref: "SubCategorie", default: null },
-    boutique: { type: Schema.Types.ObjectId, ref: "Boutique", default: null },
+    magasin: { type: Schema.Types.ObjectId, ref: "Magasin", default: null },
     brand: { type: Schema.Types.ObjectId, ref: "Brand", default: null },
 
     stock: { type: Number, required: true, min: 0 },

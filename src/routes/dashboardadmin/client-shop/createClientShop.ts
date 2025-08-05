@@ -1,6 +1,6 @@
 /* ------------------------------------------------------------------
    src/routes/dashboardadmin/client-shop/createClientShop.ts
-   Route : création d’un « ClientShop » (client boutique)
+   Route : création d’un « ClientShop » (client magasin)
 ------------------------------------------------------------------ */
 import { Router, Request, Response } from "express";
 import ClientShop from "@/models/ClientShop";

@@ -56,7 +56,7 @@ router.get("/:slugProduct", async (req: Request, res: Response) => {
       .populate("categorie", "name slug")
       .populate("subcategorie", "name slug")
       .populate("brand", "name")
-      .populate("boutique", "name")
+      .populate("magasin", "name")
       .populate({
         path: "attributes.attributeSelected",
         model: ProductAttribute,

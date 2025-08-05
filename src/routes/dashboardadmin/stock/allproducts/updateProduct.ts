@@ -55,12 +55,12 @@ router.put(
 
       const scalarFields = [
         "name", "info", "description",
-        "categorie", "subcategorie", "boutique", "brand",
+        "categorie", "subcategorie", "magasin", "brand",
         "stock", "price", "tva", "discount",
         "stockStatus", "statuspage", "vadmin",
       ] as const;
 
-      const nullableIds = ["subcategorie", "boutique", "brand"] as const;
+      const nullableIds = ["subcategorie", "magasin", "brand"] as const;
 
       for (const field of scalarFields) {
         const raw = req.body[field];

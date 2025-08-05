@@ -74,6 +74,7 @@ import SimilarProduct from "./routes/products/SimilarProduct";
 /* ---------- Dashboard Payment + Currency settings   ---------- */
 import updatePaymentSettings from "./routes/dashboardadmin/payment/payment-settings/updatePaymentSettings";
 import getPaymentSettings from "./routes/dashboardadmin/payment/payment-settings/getPaymentSettings";
+import getActivePaymentSettings from "./routes/dashboardadmin/payment/payment-settings/getActivePaymentSettings";
 import getCurrencySettings from "./routes/dashboardadmin/payment/payment-currency/getCurrencySettings";
 import updateCurrencySettings from "./routes/dashboardadmin/payment/payment-currency/updateCurrencySettings";
 import getPrimaryCurrency from "./routes/website/currency/getPrimaryCurrency";
@@ -147,7 +148,7 @@ import findClient from "./routes/dashboardadmin/client/findClient";
 import deleteClient from "./routes/dashboardadmin/client/deleteClient";
 import getAllOrders from "./routes/dashboardadmin/orders/getAllOrders";
 import getOrderById from "./routes/dashboardadmin/orders/getOrderById";
-
+import submitOrder from "./routes/dashboardadmin/orders/submitOrder";
 
 /* ---------- Dashboard Clients shops ---------- */
 import getAllClientShop from "./routes/dashboardadmin/client-shop/getAllClientShop";
@@ -175,6 +176,7 @@ import deleteDeliveryOption    from "./routes/dashboardadmin/delivery-options/de
 /* payment flags */
 app.use("/api/dashboardadmin/payment/payment-settings", updatePaymentSettings);
 app.use("/api/dashboardadmin/payment/payment-settings", getPaymentSettings);
+app.use("/api/dashboardadmin/payment/payment-settings", getActivePaymentSettings);
 app.use("/api/dashboardadmin/payment/payment-currency", getCurrencySettings);
 app.use("/api/dashboardadmin/payment/payment-currency", updateCurrencySettings)
 app.use("/api/website/currency/primary", getPrimaryCurrency);
@@ -217,13 +219,13 @@ import getAllSubCategories from "./routes/dashboardadmin/stock/subcategories/get
 import updateSubCategorie from "./routes/dashboardadmin/stock/subcategories/updateSubCategorie";
 import getSubCategorieById from "./routes/dashboardadmin/stock/subcategories/getSubCategorieById";
 
-/* ---------- Dashboard Stock: Boutiques ---------- */
-import addNewBoutique from "./routes/dashboardadmin/stock/boutiques/addNewBoutique";
-import deleteBoutique from "./routes/dashboardadmin/stock/boutiques/deleteBoutique";
-import getAllBoutiques from "./routes/dashboardadmin/stock/boutiques/getAllBoutiques";
-import getBoutiques from "./routes/dashboardadmin/stock/boutiques/getBoutiques";
-import updateBoutique from "./routes/dashboardadmin/stock/boutiques/updateBoutique";
-import getBoutiqueById from "./routes/dashboardadmin/stock/boutiques/getBoutiqueById";
+/* ---------- Dashboard Stock: Magasins ---------- */
+import addNewBoutique from "./routes/dashboardadmin/stock/magasins/addNewBoutique";
+import deleteBoutique from "./routes/dashboardadmin/stock/magasins/deleteBoutique";
+import getAllBoutiques from "./routes/dashboardadmin/stock/magasins/getAllBoutiques";
+import getBoutiques from "./routes/dashboardadmin/stock/magasins/getBoutiques";
+import updateBoutique from "./routes/dashboardadmin/stock/magasins/updateBoutique";
+import getBoutiqueById from "./routes/dashboardadmin/stock/magasins/getBoutiqueById";
 
 /* ---------- Dashboard Website Data ---------- */
 import createHomePageData from "./routes/dashboardadmin/website/homepage/createhomePageData";
@@ -353,6 +355,7 @@ app.use("/api/dashboardadmin/clientAddress", PostAddress);
 /* orders */
 app.use("/api/dashboardadmin/orders", getAllOrders);
 app.use("/api/dashboardadmin/orders", getOrderById);
+app.use("/api/dashboardadmin/orders", submitOrder);
 
 /* delivery options */
 app.use("/api/dashboardadmin/delivery-options", createDeliveryOption);
@@ -397,13 +400,13 @@ app.use("/api/dashboardadmin/stock/subcategories", getAllSubCategories);
 app.use("/api/dashboardadmin/stock/subcategories", updateSubCategorie);
 app.use("/api/dashboardadmin/stock/subcategories", getSubCategorieById);
 
-/* stock: boutiques */
-app.use("/api/dashboardadmin/stock/boutiques", addNewBoutique);
-app.use("/api/dashboardadmin/stock/boutiques", deleteBoutique);
-app.use("/api/dashboardadmin/stock/boutiques", getAllBoutiques);
-app.use("/api/dashboardadmin/stock/boutiques", getBoutiques);
-app.use("/api/dashboardadmin/stock/boutiques", updateBoutique);
-app.use("/api/dashboardadmin/stock/boutiques", getBoutiqueById);
+/* stock: magasins */
+app.use("/api/dashboardadmin/stock/magasins", addNewBoutique);
+app.use("/api/dashboardadmin/stock/magasins", deleteBoutique);
+app.use("/api/dashboardadmin/stock/magasins", getAllBoutiques);
+app.use("/api/dashboardadmin/stock/magasins", getBoutiques);
+app.use("/api/dashboardadmin/stock/magasins", updateBoutique);
+app.use("/api/dashboardadmin/stock/magasins", getBoutiqueById);
 
 /* website data */
 app.use("/api/dashboardadmin/website/homepage", createHomePageData);

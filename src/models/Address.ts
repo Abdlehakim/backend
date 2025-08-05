@@ -35,11 +35,6 @@ const AddressSchema: Schema<IAddress> = new Schema<IAddress>(
     City: { type: String, required: true },
     PostalCode: { type: String, required: true },
     Phone: { type: String, required: true },
-
-    /* -------- référence générique --------
-       On laisse simplement un ObjectId sans ref explicite afin que
-       l’adresse puisse pointer vers n’importe quel modèle client.
-       Lors d’un populate(), il faudra préciser manuellement le modèle. */
     client: {
       type: mongoose.Schema.Types.ObjectId,
       required: true,

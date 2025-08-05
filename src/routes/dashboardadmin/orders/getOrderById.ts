@@ -7,7 +7,7 @@ const router = express.Router();
 
 /**
  * GET /api/dashboardadmin/orders/:id
- * Returns a single order by ID with populated user and address.
+ * Returns a single order by ID with populated client and address.
  */
 router.get(
   '/:id',
@@ -16,7 +16,7 @@ router.get(
     try {
       const { id } = req.params;
       const order = await Order.findById(id)
-        .populate('user')
+        .populate('client')
       if (!order) {
         res.status(404).json({ message: 'Order not found' });
         return;

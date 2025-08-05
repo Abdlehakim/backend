@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import Store from '@/models/stock/Boutique';
+import Store from '@/models/stock/Magasin';
 import HomePageData from "@/models/websitedata/homePageData";
 
 const router = Router();

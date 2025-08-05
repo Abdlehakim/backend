@@ -1,6 +1,6 @@
-// src/pages/api/dashboardadmin/stock/boutiques/create.ts
+// src/pages/api/dashboardadmin/stock/magasins/create.ts
 import { Router, Request, Response } from "express";
-import Boutique from "@/models/stock/Boutique";
+import Magasin from "@/models/stock/Magasin";
 import { requirePermission } from "@/middleware/requireDashboardPermission";
 import { memoryUpload } from "@/lib/multer";
 import { uploadToCloudinary } from "@/lib/uploadToCloudinary";
@@ -8,7 +8,7 @@ import { uploadToCloudinary } from "@/lib/uploadToCloudinary";
 const router = Router();
 
 /**
- * POST /api/dashboardadmin/stock/boutiques/create
+ * POST /api/dashboardadmin/stock/magasins/create
  */
 router.post(
   "/create",
@@ -36,7 +36,7 @@ router.post(
       let imageUrl: string | undefined;
       let imageId: string | undefined;
       if (req.file) {
-        const uploaded = await uploadToCloudinary(req.file, "boutiques");
+        const uploaded = await uploadToCloudinary(req.file, "magasins");
         imageUrl = uploaded.secureUrl;
         imageId = uploaded.publicId;
       }
@@ -66,7 +66,7 @@ router.post(
       }
       const openingHoursMap = new Map(Object.entries(ohObj));
 
-      const boutique = await Boutique.create({
+      const magasin = await Magasin.create({
         name,
         phoneNumber,
         address,
@@ -80,15 +80,15 @@ router.post(
 
       res
         .status(201)
-        .json({ success: true, message: "Boutique created.", boutique });
+        .json({ success: true, message: "Magasin created.", magasin });
     } catch (err: any) {
-      console.error("Create Boutique Error:", err);
+      console.error("Create Magasin Error:", err);
 
       // Duplicate key (name exists)
       if (err.code === 11000) {
         res
           .status(400)
-          .json({ success: false, message: "Boutique name already exists." });
+          .json({ success: false, message: "Magasin name already exists." });
         return;
       }
 

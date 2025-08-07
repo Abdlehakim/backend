@@ -149,6 +149,8 @@ import deleteClient from "./routes/dashboardadmin/client/deleteClient";
 import getAllOrders from "./routes/dashboardadmin/orders/getAllOrders";
 import getOrderById from "./routes/dashboardadmin/orders/getOrderById";
 import submitOrder from "./routes/dashboardadmin/orders/submitOrder";
+import updateOrder from "./routes/dashboardadmin/orders/updateOrder";
+import updateOrderStatus from "./routes/dashboardadmin/orders/updateOrderStatus";
 
 /* ---------- Dashboard Clients shops ---------- */
 import getAllClientShop from "./routes/dashboardadmin/client-shop/getAllClientShop";
@@ -356,6 +358,8 @@ app.use("/api/dashboardadmin/clientAddress", PostAddress);
 app.use("/api/dashboardadmin/orders", getAllOrders);
 app.use("/api/dashboardadmin/orders", getOrderById);
 app.use("/api/dashboardadmin/orders", submitOrder);
+app.use("/api/dashboardadmin/orders", updateOrder);
+app.use("/api/dashboardadmin/orders", updateOrderStatus);
 
 /* delivery options */
 app.use("/api/dashboardadmin/delivery-options", createDeliveryOption);

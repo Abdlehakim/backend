@@ -52,7 +52,6 @@ const DeliveryOptionSchema = new Schema<IDeliveryOption>(
       default: true,
     },
 
-    // ⇩ NOUVEAU : marque cette option comme « Retrait en magasin »
     isPickup: {
       type: Boolean,
       default: false,

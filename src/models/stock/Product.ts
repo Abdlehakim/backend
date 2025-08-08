@@ -126,8 +126,7 @@ const ProductSchema = new Schema<IProduct>(
           ref: "ProductAttribute",
           required: true,
         },
-
-        /* value is now OPTIONAL */
+        
         value: {
           type: [
             {

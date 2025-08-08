@@ -73,7 +73,7 @@ const DeliveryAddressSchema = new Schema(
 const PickupMagasinSchema = new Schema(
   {
     Magasin: { type: Schema.Types.ObjectId, ref: "Magasin" },
-    MagasinAddress: { type: String, trim: true},
+    MagasinAddress: { type: String, trim: true },
   },
   { _id: false }
 );
@@ -121,6 +121,11 @@ const OrderSchema = new Schema<IOrder>(
               type: Schema.Types.ObjectId,
               ref: "Attribute",
               required: true,
+            },
+            name: {
+              type: String,
+              required: true,
+              trim: true,
             },
             value: { type: String, required: true, trim: true },
           },

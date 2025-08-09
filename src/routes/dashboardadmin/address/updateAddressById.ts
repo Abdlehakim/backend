@@ -10,15 +10,13 @@ const router = Router();
 
 /**
  * PUT /api/dashboardadmin/clientAddress/:addressId
- * Met à jour les champs fournis de l’adresse ciblée.
  */
 router.put(
-  "/:addressId",
+  "/update/:addressId",
   requirePermission("M_Access"),
   async (req: Request, res: Response): Promise<void> => {
     try {
       const { addressId } = req.params;
-
       if (!addressId) {
         res.status(400).json({ message: "Missing addressId parameter." });
         return;

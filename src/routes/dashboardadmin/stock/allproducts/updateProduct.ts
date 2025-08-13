@@ -19,6 +19,16 @@ function extractPublicId(url: string): string {
   return rest?.replace(/\.(jpg|jpeg|png|webp|gif|svg)$/i, "") ?? url;
 }
 
+/* safe JSON parse with fallback */
+function parseJson<T>(raw: unknown, fallback: T): T {
+  try {
+    if (typeof raw !== "string") return fallback;
+    return JSON.parse(raw) as T;
+  } catch {
+    return fallback;
+  }
+}
+
 /* ------------------------------------------------------------------ */
 /*  PUT /api/dashboardadmin/stock/products/update/:productId          */
 /* ------------------------------------------------------------------ */
@@ -63,7 +73,7 @@ router.put(
       const nullableIds = ["subcategorie", "magasin", "brand"] as const;
 
       for (const field of scalarFields) {
-        const raw = req.body[field];
+        const raw = (req.body as any)[field];
         if (raw === undefined) continue;
 
         if (["stock", "price", "tva", "discount"].includes(field)) {
@@ -73,7 +83,7 @@ router.put(
         }
 
         if (nullableIds.includes(field as any)) {
-          updateData[field] = raw === "" || raw === "null" ? null : raw.trim();
+          updateData[field] = raw === "" || raw === "null" ? null : String(raw).trim();
           continue;
         }
 
@@ -101,12 +111,12 @@ router.put(
       /* ------------------------------------------------------------------ */
       /* 3) EXTRA IMAGES (add / delete)                                     */
       /* ------------------------------------------------------------------ */
-      const remainingExtraUrls: string[] = JSON.parse(req.body.remainingExtraUrls || "[]");
-      const removedExtraUrls:   string[] = JSON.parse(req.body.removedExtraUrls   || "[]");
+      const remainingExtraUrls = parseJson<string[]>(req.body.remainingExtraUrls, []);
+      const removedExtraUrls   = parseJson<string[]>(req.body.removedExtraUrls, []);
 
-      // delete each removed asset from Cloudinary
+      // delete each removed asset from Cloudinary (optional; front may not send this)
       await Promise.all(
-        removedExtraUrls.map(u => {
+        removedExtraUrls.map((u) => {
           const id = extractPublicId(u);
           return cloudinary.uploader.destroy(id).catch(() => null);
         })
@@ -128,66 +138,73 @@ router.put(
       }
 
       /* ------------------------------------------------------------------ */
-      /* 4) ATTRIBUTE IMAGES                                                */
+      /* 4) ATTRIBUTE IMAGES  (INDEX FROM originalname)                      */
       /* ------------------------------------------------------------------ */
       const attrFiles = (req.files as any)?.attributeImages ?? [];
       if (attrFiles.length) {
         const attrs = existingProduct.attributes || [];
         for (const f of attrFiles) {
-          const [, attrIdx, valIdx] = f.fieldname.match(/attributeImages-(\d+)-(\d+)/) || [];
-          if (attrIdx !== undefined && valIdx !== undefined) {
-            const up = await uploadToCloudinary(f, `products/attr/${productId}`);
-            const idxA = +attrIdx;
-            const idxV = +valIdx;
-            if (Array.isArray(attrs[idxA]?.value) && attrs[idxA].value[idxV]) {
-              attrs[idxA].value[idxV].image   = up.secureUrl;
-              attrs[idxA].value[idxV].imageId = up.publicId;
-            }
+          // frontend uses: fd.append("attributeImages", file, "attributeImages-<a>-<v>")
+          const m = String(f.originalname || "").match(/^attributeImages-(\d+)-(\d+)$/);
+          if (!m) continue;
+          const idxA = Number(m[1]);
+          const idxV = Number(m[2]);
+
+          const up = await uploadToCloudinary(f, `products/attr/${productId}`);
+          if (Array.isArray(attrs[idxA]?.value) && attrs[idxA].value[idxV]) {
+            attrs[idxA].value[idxV].image   = up.secureUrl;
+            attrs[idxA].value[idxV].imageId = up.publicId;
           }
         }
         updateData.attributes = attrs;
       } else if (req.body.attributes !== undefined) {
         // replace entire attributes array if sent as JSON
-        updateData.attributes = JSON.parse(req.body.attributes);
+        updateData.attributes = parseJson(req.body.attributes, []);
       }
 
       /* ------------------------------------------------------------------ */
-      /* 5) PRODUCT DETAILS + DETAIL IMAGES                                 */
+      /* 5) PRODUCT DETAILS + DETAIL IMAGES  (INDEX FROM originalname)       */
       /* ------------------------------------------------------------------ */
       if (req.body.productDetails !== undefined) {
-        const detailsJson = JSON.parse(req.body.productDetails);
+        const detailsJson = parseJson<
+          Array<{ name: string; description?: string; image?: string | null; imageId?: string }>
+        >(req.body.productDetails, []);
+
         const detailFiles = (req.files as any)?.detailsImages ?? [];
 
         const processed = await Promise.all(
-          detailsJson.map(
-            async (
-              d: { name: string; description?: string; image?: string | null; imageId?: string },
-              idx: number
-            ) => {
-              d.name = d.name.trim();
-              if (d.description) d.description = d.description.trim();
+          detailsJson.map(async (d, idx) => {
+            d.name = d.name.trim();
+            if (d.description) d.description = d.description.trim();
 
-              const cur = existingProduct.productDetails?.[idx];
-              const newFile = detailFiles.find((f: any) => f.fieldname === `detailsImages-${idx}`);
+            const cur = existingProduct.productDetails?.[idx];
 
-              if (newFile) {
-                const up = await uploadToCloudinary(newFile, `products/details/${productId}`);
-                if (cur?.imageId) await cloudinary.uploader.destroy(cur.imageId).catch(() => null);
-                d.image   = up.secureUrl;
-                d.imageId = up.publicId;
-              } else if (d.image === null) {
-                if (cur?.imageId) await cloudinary.uploader.destroy(cur.imageId).catch(() => null);
-                delete d.image;
-                delete d.imageId;
-              } else if (cur) {
-                d.image   = cur.image;
-                d.imageId = cur.imageId;
-              }
+            // frontend uses: fd.append("detailsImages", file, "detailsImages-<idx>")
+            const expectedName = `detailsImages-${idx}`;
+            const newFile = detailFiles.find(
+              (f: any) => String(f.originalname || "") === expectedName
+            );
 
-              return d;
+            if (newFile) {
+              const up = await uploadToCloudinary(newFile, `products/details/${productId}`);
+              if (cur?.imageId) await cloudinary.uploader.destroy(cur.imageId).catch(() => null);
+              d.image   = up.secureUrl;
+              d.imageId = up.publicId;
+            } else if (d.image === null) {
+              // user cleared the image
+              if (cur?.imageId) await cloudinary.uploader.destroy(cur.imageId).catch(() => null);
+              delete d.image;
+              delete d.imageId;
+            } else if (cur) {
+              // keep existing if nothing changed
+              d.image   = cur.image;
+              d.imageId = cur.imageId;
             }
-          )
+
+            return d;
+          })
         );
+
         updateData.productDetails = processed;
       }
 

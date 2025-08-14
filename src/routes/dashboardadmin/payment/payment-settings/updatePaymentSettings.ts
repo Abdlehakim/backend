@@ -3,7 +3,7 @@
 import { Router, Request, Response } from "express";
 import PaymentMethod from "@/models/payment/PaymentMethods";
 import { requirePermission } from "@/middleware/requireDashboardPermission";
-import { PaymentMethodKey, PAYMENT_METHOD_KEYS } from "@/constants/paymentSettingsData";
+import { PaymentMethodKey, PAYMENT_METHOD_KEYS } from "@/constants/paymentMethodsData";
 
 const router = Router();
 

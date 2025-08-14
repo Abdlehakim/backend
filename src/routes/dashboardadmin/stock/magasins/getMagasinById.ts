@@ -1,4 +1,4 @@
-// src/routes/dashboardadmin/stock/magasins/getBoutiqueById.ts
+// src/routes/dashboardadmin/stock/magasins/getMagasinById.ts
 import { Router, Request, Response } from "express";
 import Magasin from "@/models/stock/Magasin";
 import { requirePermission } from "@/middleware/requireDashboardPermission";
@@ -6,16 +6,16 @@ import { requirePermission } from "@/middleware/requireDashboardPermission";
 const router = Router();
 
 /**
- * GET /api/dashboardadmin/stock/magasins/:boutiqueId
+ * GET /api/dashboardadmin/stock/magasins/:magasinId
  */
 router.get(
-  "/:boutiqueId",
+  "/:magasinId",
   requirePermission("M_Stock"),
   async (req: Request, res: Response): Promise<void> => {
     try {
-      const { boutiqueId } = req.params;
+      const { magasinId } = req.params;
       const magasin = await Magasin
-        .findById(boutiqueId)
+        .findById(magasinId)
         .populate("createdBy updatedBy", "username")
         .lean();
 

@@ -110,7 +110,7 @@ router.get("/products/options", async (_req: Request, res: Response) => {
   try {
     const match = { vadmin: "approve", statuspage: "promotion" };
 
-    const [brandIds, boutiqueIds, catIds, subCatIds] = await Promise.all([
+    const [brandIds, magasinIds, catIds, subCatIds] = await Promise.all([
       Product.distinct("brand",        match),
       Product.distinct("magasin",     match),
       Product.distinct("categorie",    match),
@@ -119,7 +119,7 @@ router.get("/products/options", async (_req: Request, res: Response) => {
 
     const [brands, magasins, categories, subcategories] = await Promise.all([
       Brand.find({ _id: { $in: brandIds } }).select("_id name").lean(),
-      Magasin.find({ _id: { $in: boutiqueIds } }).select("_id name").lean(),
+      Magasin.find({ _id: { $in: magasinIds } }).select("_id name").lean(),
       Categorie.find({ _id: { $in: catIds } }).select("_id name").lean(),
       Subcategorie.find({ _id: { $in: subCatIds } }).select("_id name").lean(),
     ]);

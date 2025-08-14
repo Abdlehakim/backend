@@ -34,7 +34,7 @@ router.get(
     try {
       // Only select the title and subtitle fields
       const storeHomePageTitles = await HomePageData.findOne()
-        .select("HPboutiqueTitle HPboutiqueSubTitle")
+        .select("HPmagasinTitle HPmagasinSubTitle")
         .exec();
       res.json(storeHomePageTitles);
     } catch (err) {

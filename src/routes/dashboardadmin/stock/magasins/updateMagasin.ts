@@ -1,4 +1,4 @@
-// routes/dashboardadmin/stock/magasins/updateBoutique
+// routes/dashboardadmin/stock/magasins/updateMagasin
 import { Router, Request, Response } from "express";
 import Magasin from "@/models/stock/Magasin";
 import { requirePermission } from "@/middleware/requireDashboardPermission";
@@ -9,14 +9,14 @@ import cloudinary from "@/lib/cloudinary";
 const router = Router();
 
 /**
- * PUT /api/dashboardadmin/stock/magasins/update/:boutiqueId
+ * PUT /api/dashboardadmin/stock/magasins/update/:magasinId
  */
 router.put(
-  "/update/:boutiqueId",
+  "/update/:magasinId",
   requirePermission("M_Stock"),
   memoryUpload.single("image"),
   async (req: Request, res: Response): Promise<void> => {
-    const { boutiqueId } = req.params;
+    const { magasinId } = req.params;
     const userId = req.dashboardUser?._id;
 
     if (!userId) {
@@ -26,7 +26,7 @@ router.put(
 
     try {
       // 1) fetch existing magasin
-      const existing = await Magasin.findById(boutiqueId);
+      const existing = await Magasin.findById(magasinId);
       if (!existing) {
         res.status(404).json({ message: "Magasin not found." });
         return;
@@ -89,19 +89,19 @@ router.put(
       }
 
       // 4) apply the update
-      const updatedBoutique = await Magasin.findByIdAndUpdate(
-        boutiqueId,
+      const updatedMagasin = await Magasin.findByIdAndUpdate(
+        magasinId,
         updateData,
         { new: true, runValidators: true }
       );
-      if (!updatedBoutique) {
+      if (!updatedMagasin) {
         res.status(404).json({ message: "Magasin not found after update." });
         return;
       }
 
       res.json({
         message: "Magasin updated successfully.",
-        magasin: updatedBoutique,
+        magasin: updatedMagasin,
       });
     } catch (err: any) {
       console.error("Update Magasin Error:", err);

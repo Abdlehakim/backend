@@ -1,30 +1,24 @@
 // ───────────────────────────────────────────────────────────────
 // src/routes/website/checkout/getAllDeliveryOption.ts
-// Public endpoint – returns active delivery methods for checkout
 // ───────────────────────────────────────────────────────────────
 import { Router, Request, Response } from "express";
 import DeliveryOption from "@/models/dashboardadmin/DeliveryOption";
 
 const router = Router();
 
-/* ================================================================== */
-/*  GET /api/checkout/delivery-options                                 */
-/*     ?limit=6          – optional, defaults to all                   */
-/* ================================================================== */
-router.get("/", async (req: Request, res: Response) => {
+router.get("/", async (_req: Request, res: Response) => {
   try {
-    
     const options = await DeliveryOption.find({ isActive: true })
-      .select("_id name description price")
-      .sort({ price: 1 })            
+      .select("_id name description price isPickup")
+      .sort({ price: 1 })
       .lean();
 
-    /* map to the shape your frontend expects */
     const result = options.map((o) => ({
-      id:    o._id.toString(),
-      name:  o.name,
+      id: o._id.toString(),
+      name: o.name,
       description: o.description ?? "",
-      cost:  o.price,
+      cost: o.price,
+      isPickup: !!o.isPickup,
     }));
 
     res.json(result);

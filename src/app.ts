@@ -81,6 +81,7 @@ import getPrimaryCurrency from "./routes/website/currency/getPrimaryCurrency";
 
 /* ----------  Website / checkout ---------- */
 import getAllDeliveryOptionWeb from "./routes/website/checkout/getAllDeliveryOption";
+import getAllAprovedMagasinWeb from "./routes/website/checkout/getAllAprovedMagasin";
 import getPaymentMethode from "./routes/website/checkout/getPaymentMethode";
 
 /* ---------- HomePage, nav, banners ---------- */
@@ -222,12 +223,12 @@ import updateSubCategorie from "./routes/dashboardadmin/stock/subcategories/upda
 import getSubCategorieById from "./routes/dashboardadmin/stock/subcategories/getSubCategorieById";
 
 /* ---------- Dashboard Stock: Magasins ---------- */
-import addNewBoutique from "./routes/dashboardadmin/stock/magasins/addNewBoutique";
-import deleteBoutique from "./routes/dashboardadmin/stock/magasins/deleteBoutique";
-import getAllBoutiques from "./routes/dashboardadmin/stock/magasins/getAllBoutiques";
-import getBoutiques from "./routes/dashboardadmin/stock/magasins/getBoutiques";
-import updateBoutique from "./routes/dashboardadmin/stock/magasins/updateBoutique";
-import getBoutiqueById from "./routes/dashboardadmin/stock/magasins/getBoutiqueById";
+import addNewMagasin from "./routes/dashboardadmin/stock/magasins/addNewMagasin";
+import deleteMagasin from "./routes/dashboardadmin/stock/magasins/deleteMagasin";
+import getAllMagasins from "./routes/dashboardadmin/stock/magasins/getAllMagasins";
+import getMagasins from "./routes/dashboardadmin/stock/magasins/getMagasins";
+import updateMagasin from "./routes/dashboardadmin/stock/magasins/updateMagasin";
+import getMagasinById from "./routes/dashboardadmin/stock/magasins/getMagasinById";
 
 /* ---------- Dashboard Website Data ---------- */
 import createHomePageData from "./routes/dashboardadmin/website/homepage/createhomePageData";
@@ -310,6 +311,7 @@ app.use("/api/client/address", deleteClientAddress);
 /* ----------  Website / checkout ---------- */
 
 app.use("/api/checkout/delivery-options", getAllDeliveryOptionWeb);
+app.use("/api/checkout/Magasin-options", getAllAprovedMagasinWeb);
 app.use("/api/checkout/payment-methods", getPaymentMethode);
 
 /* ---------- header Website / sections ---------- */
@@ -405,12 +407,12 @@ app.use("/api/dashboardadmin/stock/subcategories", updateSubCategorie);
 app.use("/api/dashboardadmin/stock/subcategories", getSubCategorieById);
 
 /* stock: magasins */
-app.use("/api/dashboardadmin/stock/magasins", addNewBoutique);
-app.use("/api/dashboardadmin/stock/magasins", deleteBoutique);
-app.use("/api/dashboardadmin/stock/magasins", getAllBoutiques);
-app.use("/api/dashboardadmin/stock/magasins", getBoutiques);
-app.use("/api/dashboardadmin/stock/magasins", updateBoutique);
-app.use("/api/dashboardadmin/stock/magasins", getBoutiqueById);
+app.use("/api/dashboardadmin/stock/magasins", addNewMagasin);
+app.use("/api/dashboardadmin/stock/magasins", deleteMagasin);
+app.use("/api/dashboardadmin/stock/magasins", getAllMagasins);
+app.use("/api/dashboardadmin/stock/magasins", getMagasins);
+app.use("/api/dashboardadmin/stock/magasins", updateMagasin);
+app.use("/api/dashboardadmin/stock/magasins", getMagasinById);
 
 /* website data */
 app.use("/api/dashboardadmin/website/homepage", createHomePageData);
@@ -474,7 +476,7 @@ app.use("*", notFound);
 import { createOrUpdatePermissions } from "./scripts/createOrUpdatePermissions";
 import { initializeDefaultRoles } from "./scripts/initRoles";
 import createSuperAdminAccount from "./scripts/initSuperAdmin";
-import initPaymentSettings         from "./scripts/initPaymentSettings";
+import initPaymentSettings         from "./scripts/initPaymentMethods";
 import initCurrencySettings from "./scripts/initCurrencySettings";
 
 (async () => {

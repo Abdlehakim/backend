@@ -7,18 +7,18 @@ import cloudinary from "@/lib/cloudinary";
 const router = Router();
 
 /**
- * DELETE /api/dashboardadmin/stock/magasins/delete/:boutiqueId
+ * DELETE /api/dashboardadmin/stock/magasins/delete/:magasinId
  * — deletes the DB record and the Cloudinary image
  */
 router.delete(
-  "/delete/:boutiqueId",
+  "/delete/:magasinId",
   requirePermission("M_Stock"),
   async (req: Request, res: Response): Promise<void> => {
     try {
-      const { boutiqueId } = req.params;
+      const { magasinId } = req.params;
 
       // 1) remove the DB record (and get back its data)
-      const deleted = await Magasin.findByIdAndDelete(boutiqueId);
+      const deleted = await Magasin.findByIdAndDelete(magasinId);
       if (!deleted) {
         res.status(404).json({ message: "Magasin not found." });
         return;
@@ -30,8 +30,7 @@ router.delete(
           await cloudinary.uploader.destroy(deleted.imageId);
         } catch (cloudErr) {
           console.error("Cloudinary deletion error:", cloudErr);
-          // (optional) you could choose to return a 500 here,
-          // but usually you'd still consider the magasin deleted.
+          // still consider the magasin deleted
         }
       }
 

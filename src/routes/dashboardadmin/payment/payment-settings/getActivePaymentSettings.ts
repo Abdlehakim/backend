@@ -15,7 +15,6 @@ router.get(
   async (_req: Request, res: Response) => {
     try {
       const activeMethods: IPaymentMethod[] = await PaymentMethod.find({ enabled: true }).lean();
-
       res.json({ activePaymentMethods: activeMethods });
     } catch (err) {
       console.error("GetActivePaymentSettings Error:", err);

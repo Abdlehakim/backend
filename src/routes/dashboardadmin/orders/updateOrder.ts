@@ -27,7 +27,7 @@ async function resolveClientName(id: string): Promise<string | null> {
     .lean<{ username?: string; name?: string }>();
   if (account) return account.username ?? account.name ?? "";
 
-  /* boutique */
+  /* magasin */
   const shop = await ClientShop.findById(id)
     .select("name")
     .lean<{ name?: string }>();

@@ -1,4 +1,4 @@
-//dashboardadmin/stock/getAllBoutiques.ts
+//dashboardadmin/stock/getAllMagasins.ts
 
 
 import { Router, Request, Response } from "express";

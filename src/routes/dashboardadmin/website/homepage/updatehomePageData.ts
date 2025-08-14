@@ -42,8 +42,8 @@ router.put(
         HPcategorieSubTitle,
         HPbrandTitle,
         HPbrandSubTitle,
-        HPboutiqueTitle,
-        HPboutiqueSubTitle,
+        HPmagasinTitle,
+        HPmagasinSubTitle,
         HPNewProductTitle,
         HPNewProductSubTitle,
         HPPromotionTitle,
@@ -57,8 +57,8 @@ router.put(
       if (typeof HPcategorieSubTitle === "string")   updateData.HPcategorieSubTitle = HPcategorieSubTitle.trim();
       if (typeof HPbrandTitle === "string")          updateData.HPbrandTitle = HPbrandTitle.trim();
       if (typeof HPbrandSubTitle === "string")       updateData.HPbrandSubTitle = HPbrandSubTitle.trim();
-      if (typeof HPboutiqueTitle === "string")       updateData.HPboutiqueTitle = HPboutiqueTitle.trim();
-      if (typeof HPboutiqueSubTitle === "string")    updateData.HPboutiqueSubTitle = HPboutiqueSubTitle.trim();
+      if (typeof HPmagasinTitle === "string")       updateData.HPmagasinTitle = HPmagasinTitle.trim();
+      if (typeof HPmagasinSubTitle === "string")    updateData.HPmagasinSubTitle = HPmagasinSubTitle.trim();
       if (typeof HPNewProductTitle === "string")     updateData.HPNewProductTitle = HPNewProductTitle.trim();
       if (typeof HPNewProductSubTitle === "string")  updateData.HPNewProductSubTitle = HPNewProductSubTitle.trim();
       if (typeof HPPromotionTitle === "string")      updateData.HPPromotionTitle = HPPromotionTitle.trim();

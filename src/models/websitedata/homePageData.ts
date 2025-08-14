@@ -10,8 +10,8 @@ export interface IhomePageData extends Document {
   HPcategorieSubTitle: string;
   HPbrandTitle: string;
   HPbrandSubTitle: string;
-  HPboutiqueTitle: string;
-  HPboutiqueSubTitle: string;
+  HPmagasinTitle: string;
+  HPmagasinSubTitle: string;
   HPNewProductTitle: string;
   HPNewProductSubTitle: string;
   HPPromotionTitle: string;
@@ -29,8 +29,8 @@ const homePageDataSchema = new Schema<IhomePageData>(
     HPcategorieSubTitle:   { type: String, required: true, unique: true },
     HPbrandTitle:          { type: String, required: true, unique: true },
     HPbrandSubTitle:       { type: String, required: true, unique: true },
-    HPboutiqueTitle:       { type: String, required: true, unique: true },
-    HPboutiqueSubTitle:    { type: String, required: true, unique: true },
+    HPmagasinTitle:       { type: String, required: true, unique: true },
+    HPmagasinSubTitle:    { type: String, required: true, unique: true },
     HPNewProductTitle:     { type: String, required: true, unique: true },
     HPNewProductSubTitle:  { type: String, required: true, unique: true },
     HPPromotionTitle:      { type: String, required: true, unique: true },

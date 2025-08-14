@@ -1,5 +1,5 @@
 /* ------------------------------------------------------------------
-   src/routes/stock/getBoutiques.ts
+   src/routes/stock/getMagasins.ts
    GET /api/stock/magasins
    Liste publique (mais protégée) des magasins approuvées
 ------------------------------------------------------------------ */

@@ -77,11 +77,11 @@ router.put(
         updateData.email = email.trim();
       }
       if (phone !== undefined) {
-        if (isNaN(Number(phone))) {
+        if (!phone.trim()) {
           res.status(400).json({ success: false, message: "Phone must be a number." });
           return;
         }
-        updateData.phone = Number(phone);
+        updateData.phone = phone.trim();
       }
       if (address !== undefined) {
         if (!address.trim()) {

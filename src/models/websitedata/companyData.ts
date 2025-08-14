@@ -12,7 +12,7 @@ export interface ICompanyData extends Document {
   contactBannerId?: string;
   description: string;
   email: string;
-  phone: number;
+  phone: string;
   address: string;
   city: string;
   zipcode: string;
@@ -63,7 +63,7 @@ const companyDataSchema = new Schema<ICompanyData>(
       trim: true,
     },
     phone: {
-      type: Number,
+      type: String,
       required: true,
     },
     address: {

@@ -73,7 +73,7 @@ router.post(
       if (!email.trim()) {
         res.status(400).json({ success: false, message: "Email is required." });
       }
-      if (!phone.trim() || isNaN(Number(phone))) {
+      if (!phone.trim()) {
         res.status(400).json({ success: false, message: "Valid phone number is required." });
       }
       if (!address.trim()) {
@@ -125,7 +125,7 @@ router.post(
         contactBannerId,
         description:      description.trim(),
         email:            email.trim(),
-        phone:            Number(phone),
+        phone:            phone.trim(),
         address:          address.trim(),
         city:             city.trim(),
         zipcode:          zipcode.trim(),

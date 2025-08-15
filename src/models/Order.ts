@@ -1,7 +1,5 @@
 /* ------------------------------------------------------------------
    models/Order.ts
-   Updated (Aug 2025): `pickupMagasin` is now an ARRAY, mirroring
-   `DeliveryAddress` (both default to []).
 ------------------------------------------------------------------ */
 import mongoose, { Schema, Document, Model } from "mongoose";
 import crypto from "crypto";
@@ -13,6 +11,7 @@ import { IClientCompany } from "./ClientCompany";
 
 interface IOrderItemAttribute {
   attribute: mongoose.Types.ObjectId;
+  name: string;
   value: string;
 }
 
@@ -25,14 +24,21 @@ export interface IOrder extends Document {
 
   /* delivery address list */
   DeliveryAddress: Array<{
-    Address: mongoose.Types.ObjectId;
+    AddressID: mongoose.Types.ObjectId;
     DeliverToAddress: string;
   }>;
 
-  /* pickup magasins list (NOW AN ARRAY) */
+  /* pickup magasins list */
   pickupMagasin: Array<{
-    Magasin: mongoose.Types.ObjectId;
+    MagasinID: mongoose.Types.ObjectId;
+    MagasinName?: string;
     MagasinAddress: string;
+  }>;
+
+  /* payment methods list */
+  paymentMethod: Array<{
+    PaymentMethodID: mongoose.Types.ObjectId;
+    PaymentMethodLabel: string;
   }>;
 
   /* order items */
@@ -48,32 +54,63 @@ export interface IOrder extends Document {
     attributes?: IOrderItemAttribute[];
   }>;
 
+  /* delivery method (array) */
+  deliveryMethod: Array<{
+    deliveryMethodID: mongoose.Types.ObjectId;
+    deliveryMethodName?: string;
+    Cost: string;
+    expectedDeliveryDate?: Date;
+  }>;
+
   /* misc meta */
-  paymentMethod?: string;
-  deliveryMethod: string;
-  deliveryCost?: number;
-  expectedDeliveryDate?: Date;
   orderStatus?: string;
   createdAt?: Date;
   updatedAt?: Date;
 }
 
-/* ---------- sub-schemas ---------- */
-
-/* DeliveryAddress sub-schema (kept for clarity) */
+/* DeliveryAddress sub-schema */
 const DeliveryAddressSchema = new Schema(
   {
-    Address: { type: Schema.Types.ObjectId, ref: "Address", required: true },
+    AddressID: { type: Schema.Types.ObjectId, ref: "Address", required: true },
     DeliverToAddress: { type: String, trim: true, required: true },
   },
   { _id: false }
 );
 
-/* PickupMagasin sub-schema; used inside an array */
+/* PickupMagasin sub-schema */
 const PickupMagasinSchema = new Schema(
   {
-    Magasin: { type: Schema.Types.ObjectId, ref: "Magasin" },
-    MagasinAddress: { type: String, trim: true },
+    MagasinID: { type: Schema.Types.ObjectId, ref: "Magasin", required: true },
+    MagasinAddress: { type: String, trim: true, required: true },
+    MagasinName: { type: String, trim: true, required: true },
+  },
+  { _id: false }
+);
+
+/* PaymentMethod sub-schema */
+const PaymentMethodSchema = new Schema(
+  {
+    PaymentMethodID: {
+      type: Schema.Types.ObjectId,
+      ref: "PaymentMethod",
+      required: true,
+    },
+    PaymentMethodLabel: { type: String, trim: true, required: true },
+  },
+  { _id: false }
+);
+
+/* DeliveryMethod sub-schema (NEW) */
+const DeliveryMethodSchema = new Schema(
+  {
+    deliveryMethodID: {
+      type: Schema.Types.ObjectId,
+      ref: "DeliveryOption",
+      required: true,
+    },
+    deliveryMethodName: { type: String, trim: true , required: true },
+    Cost: { type: String, trim: true, required: true },
+    expectedDeliveryDate: { type: Date },
   },
   { _id: false }
 );
@@ -85,18 +122,21 @@ const OrderSchema = new Schema<IOrder>(
     client: { type: Schema.Types.ObjectId, required: true },
     clientName: { type: String, required: true, trim: true },
 
-    /* auto-generated reference */
     ref: { type: String },
 
-    /* delivery addresses (array) */
+    /* addresses & pickup points */
     DeliveryAddress: {
       type: [DeliveryAddressSchema],
       default: [],
     },
-
-    /* pickup magasins (array) */
     pickupMagasin: {
       type: [PickupMagasinSchema],
+      default: [],
+    },
+
+    /* payment methods (array) */
+    paymentMethod: {
+      type: [PaymentMethodSchema],
       default: [],
     },
 
@@ -122,30 +162,26 @@ const OrderSchema = new Schema<IOrder>(
               ref: "Attribute",
               required: true,
             },
-            name: {
-              type: String,
-              required: true,
-              trim: true,
-            },
+            name: { type: String, required: true, trim: true },
             value: { type: String, required: true, trim: true },
           },
         ],
       },
     ],
 
+    /* delivery method (array) */
+    deliveryMethod: {
+      type: [DeliveryMethodSchema],
+      default: [],
+    },
+
     /* meta */
-    paymentMethod: { type: String },
-    deliveryMethod: { type: String, required: true },
-    deliveryCost: { type: Number, default: 0, min: 0 },
-    expectedDeliveryDate: { type: Date },
     orderStatus: { type: String, default: "Processing" },
   },
   { timestamps: true }
 );
 
 /* ---------- hooks ---------- */
-
-/* generate a random reference if none supplied */
 OrderSchema.pre<IOrder>("save", function (next) {
   if (!this.ref) {
     this.ref = `ORDER-${crypto.randomBytes(4).toString("hex")}`;

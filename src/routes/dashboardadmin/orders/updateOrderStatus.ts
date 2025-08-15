@@ -38,8 +38,8 @@ router.put(
         { new: true }
       )
         .populate("client")
-        .populate("DeliveryAddress.Address")
-        .populate("pickupMagasin.Magasin");
+        .populate("DeliveryAddress.AddressID")
+        .populate("pickupMagasin.MagasinID");
 
       if (!updated) {
         res.status(404).json({ message: "Order not found." });

@@ -1,6 +1,3 @@
-// ───────────────────────────────────────────────────────────────
-// src/routes/website/checkout/getAllDeliveryOption.ts
-// ───────────────────────────────────────────────────────────────
 import { Router, Request, Response } from "express";
 import DeliveryOption from "@/models/dashboardadmin/DeliveryOption";
 
@@ -9,7 +6,7 @@ const router = Router();
 router.get("/", async (_req: Request, res: Response) => {
   try {
     const options = await DeliveryOption.find({ isActive: true })
-      .select("_id name description price isPickup")
+      .select("_id name description price estimatedDays isPickup")
       .sort({ price: 1 })
       .lean();
 
@@ -18,6 +15,8 @@ router.get("/", async (_req: Request, res: Response) => {
       name: o.name,
       description: o.description ?? "",
       cost: o.price,
+      price: o.price,
+      estimatedDays: o.estimatedDays, // ← important
       isPickup: !!o.isPickup,
     }));
 

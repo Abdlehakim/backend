@@ -52,7 +52,7 @@ router.get('/', async (req: Request, res: Response) => {
 
 
 /* ================================================================== */
-/*  GET /api/categories/getAll      (full list for admin, etc.)       */
+/*  GET /api/categories/getAll 
 /* ================================================================== */
 router.get('/getAll', async (req: Request, res: Response) => {
   try {
@@ -96,6 +96,57 @@ router.get('/getAll', async (req: Request, res: Response) => {
 
 
 /* ================================================================== */
+/*  GET /api/categories/getAllName                                    */
+/* ================================================================== */
+router.get("/getAllName", async (req: Request, res: Response) => {
+  try {
+    const docs = await Categorie.aggregate([
+      { $match: { vadmin: "approve" } },
+      { $project: { name: 1, slug: 1 } },
+      {
+        $lookup: {
+          from: SubCategorie.collection.name,
+          let: { catId: "$_id" },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $and: [
+                    { $eq: ["$categorie", "$$catId"] },
+                    { $eq: ["$vadmin", "approve"] },
+                  ],
+                },
+              },
+            },
+            { $project: { name: 1, slug: 1 } },
+          ],
+          as: "subcategories",
+        },
+      },
+    ]);
+
+    const result = docs.map((cat: any) => ({
+      name: cat.name,
+      slug: cat.slug,
+      subcategories: (cat.subcategories || []).map((s: any) => ({
+        name: s.name,
+        slug: s.slug,
+      })),
+    }));
+
+    res.json(result);
+  } catch (err) {
+    console.error("Error fetching category names:", err);
+    res.status(500).json({ error: "Error fetching category names" });
+  }
+});
+
+
+
+
+
+/*
+================================================================== */
 /*  GET /api/categories/:id/subcategories                              */
 /* ================================================================== */
 router.get('/:id/subcategories', async (req: Request, res: Response) => {

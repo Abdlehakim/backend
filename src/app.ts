@@ -17,7 +17,7 @@ export const COOKIE_DOMAIN = isProd ? ".soukelmeuble.tn" : undefined;
 
 export const COOKIE_OPTS = {
   httpOnly: true,
-  secure: isProd, // only over HTTPS in prod
+  secure: isProd,
   sameSite: isProd ? ("none" as const) : ("lax" as const),
   path: "/",
   ...(COOKIE_DOMAIN && { domain: COOKIE_DOMAIN }),

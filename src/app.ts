@@ -58,7 +58,7 @@ const corsOptions: CorsOptions = {
 };
 
 app.use(cors(corsOptions));
-app.options("*", cors(corsOptions)); // pre-flight
+app.options("*", cors(corsOptions));
 
 /* 4️⃣  ROUTES – MANUAL IMPORT BLOCK ----------------------------------- */
 /* ---------- Client Auth ---------- */

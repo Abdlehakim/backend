@@ -40,7 +40,7 @@ router.post(
       const description  = ((req.body.description as string) || "").trim();
       const categorie    = req.body.categorie as string;
       const subcategorie = (req.body.subcategorie as string) || null;
-      const magasin     = (req.body.magasin     as string) || null;
+      const magasin      = (req.body.magasin      as string) || null;
       const brand        = (req.body.brand        as string) || null;
 
       const stock        = parseInt(req.body.stock as string, 10)  || 0;
@@ -59,50 +59,55 @@ router.post(
 
       if (req.body.attributes !== undefined) {
         try {
-          const rawAttrs  = JSON.parse(req.body.attributes as string);
+          const raw = JSON.parse(req.body.attributes as string);
+
+          if (!Array.isArray(raw)) {
+            res.status(400).json({ success: false, message: "Invalid JSON for attributes" });
+            return;
+          }
+
           const attrFiles = (req.files as any)?.attributeImages || [];
 
-          attributes = await Promise.all(
-            rawAttrs.map(
+          const mapped = await Promise.all(
+            raw.map(
               async (
-                attr: { definition: string; value: any },
+                attr: { attributeSelected?: string; definition?: string; value: any },
                 aIdx: number
               ) => {
+                // accept either attributeSelected (new) or definition (old)
+                const id = ((attr.attributeSelected ?? attr.definition ?? "") as string).trim();
+                if (!id) return null; // skip blanks to avoid Mongoose "required" error
+
                 let processed = attr.value;
 
-                if (Array.isArray(attr.value)) {
+                if (Array.isArray(processed)) {
                   processed = await Promise.all(
-                    attr.value.map(
-                      async (row: any, vIdx: number) => {
-                        const file = attrFiles.find(
-                          (f: any) =>
-                            f.originalname === `attributeImages-${aIdx}-${vIdx}`
-                        );
-                        if (file) {
-                          const up = await uploadToCloudinary(
-                            file,
-                            "products/attributes"
-                          );
-                          row.image   = up.secureUrl;
-                          row.imageId = up.publicId;
-                        }
-                        return row;
+                    processed.map(async (row: any, vIdx: number) => {
+                      // match by originalname set in the frontend: attributeImages-${aIdx}-${vIdx}
+                      const file = attrFiles.find(
+                        (f: any) => f.originalname === `attributeImages-${aIdx}-${vIdx}`
+                      );
+                      if (file) {
+                        const up = await uploadToCloudinary(file, "products/attributes");
+                        row.image = up.secureUrl;
+                        row.imageId = up.publicId;
                       }
-                    )
+                      return row;
+                    })
                   );
                 }
 
                 return {
-                  attributeSelected: attr.definition,
+                  attributeSelected: id,
                   value: processed,
                 };
               }
             )
           );
+
+          attributes = (mapped.filter(Boolean) as { attributeSelected: string; value: any }[]);
         } catch {
-          res
-            .status(400)
-            .json({ success: false, message: "Invalid JSON for attributes" });
+          res.status(400).json({ success: false, message: "Invalid JSON for attributes" });
           return;
         }
       }
@@ -119,7 +124,7 @@ router.post(
 
       if (req.body.productDetails !== undefined) {
         try {
-          const raw   = JSON.parse(req.body.productDetails as string);
+          const raw = JSON.parse(req.body.productDetails as string);
           const files = (req.files as any)?.detailsImages || [];
 
           productDetails = await Promise.all(
@@ -138,25 +143,21 @@ router.post(
                 d.name = d.name.trim();
                 if (d.description) d.description = d.description.trim();
 
-                /* match by originalname set in the front-end */
+                // match by originalname set in the front-end
                 const file = files.find(
                   (f: any) => f.originalname === `detailsImages-${idx}`
                 );
 
                 if (file) {
                   const up = await uploadToCloudinary(file, "products/details");
-                  d.image   = up.secureUrl;
+                  d.image = up.secureUrl;
                   d.imageId = up.publicId;
                 }
 
                 return d;
               }
             )
-          ).then((arr) =>
-            arr.filter(Boolean) as NonNullable<
-              (typeof arr)[number]
-            >[]
-          );
+          ).then((arr) => arr.filter(Boolean) as NonNullable<(typeof arr)[number]>[]);
         } catch {
           res
             .status(400)
@@ -184,8 +185,7 @@ router.post(
       const extraImagesId:  string[] = [];
 
       if ((req.files as any)?.extraImages?.length) {
-        for (const file of (req.files as any)
-          .extraImages as Express.Multer.File[]) {
+        for (const file of (req.files as any).extraImages as Express.Multer.File[]) {
           const up = await uploadToCloudinary(file, "products");
           extraImagesUrl.push(up.secureUrl);
           extraImagesId .push(up.publicId);

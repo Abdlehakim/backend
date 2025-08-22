@@ -8,7 +8,7 @@ import { COOKIE_OPTS, isProd } from "@/app";
 const router = Router();
 
 const JWT_SECRET = process.env.JWT_SECRET!;
-const SHOULD_REFRESH_MS = 30 * 60 * 1000;
+const SHOULD_REFRESH_MS = 5 * 60 * 1000;
 
 /** Force responses to be non-cacheable (avoid 304 on /me). */
 function setNoStore(res: Response) {

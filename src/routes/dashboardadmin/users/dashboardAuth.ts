@@ -1,9 +1,5 @@
 // src/routes/dashboardadmin/users/dashboardAuth.ts
-/* --------------------------------------------------------------------------
-   Mirrors client auth: 30 min JWT + mirror-expiry cookie
--------------------------------------------------------------------------- */
-
-import { Router, Request, Response } from "express";
+import { Router, RequestHandler, Response } from "express";
 import type { CookieOptions } from "express";
 import jwt from "jsonwebtoken";
 import DashboardUser from "@/models/dashboardadmin/DashboardUser";
@@ -11,13 +7,10 @@ import { COOKIE_OPTS, isProd } from "@/app";
 
 const router = Router();
 
-/* ---------- env check ---------- */
-const JWT_SECRET = process.env.JWT_SECRET;
-if (!JWT_SECRET) throw new Error("Missing JWT_SECRET env variable");
+const JWT_SECRET = process.env.JWT_SECRET!;
+const SHOULD_REFRESH_MS = 30 * 60 * 1000;
 
-/* ---------- helpers ------------------------------------------------------- */
-const SHOULD_REFRESH_MS = 5 * 60 * 1000; // 5 minutes
-
+/** Force responses to be non-cacheable (avoid 304 on /me). */
 function setNoStore(res: Response) {
   res.set({
     "Cache-Control": "no-store, no-cache, must-revalidate",
@@ -31,24 +24,18 @@ function setAuthCookies(res: Response, token: string) {
   const { exp } = jwt.decode(token) as { exp: number };
   const expMs = exp * 1000;
 
-  const common: CookieOptions = { ...COOKIE_OPTS, maxAge: SHOULD_REFRESH_MS, path: "/" };
+  const common: CookieOptions = {
+    ...COOKIE_OPTS,                 // e.g. { domain: ".soukelmeuble.tn", sameSite: "lax", secure: true }
+    maxAge: SHOULD_REFRESH_MS,
+    path: "/",
+  };
   if (!isProd) delete (common as Partial<CookieOptions>).domain;
 
-  // ① real JWT — HttpOnly
-  res.cookie("token_FrontEndAdmin", token, {
-    ...common,
-    httpOnly: true,
-  });
-
-  // ② mirror expiry — JS-readable
-  res.cookie("token_FrontEndAdmin_exp", expMs, {
-    ...common,
-    httpOnly: false,
-  });
+  res.cookie("token_FrontEndAdmin", token, { ...common, httpOnly: true });
+  res.cookie("token_FrontEndAdmin_exp", expMs, { ...common, httpOnly: false });
 }
 
 function clearAuthCookies(res: Response) {
-  // zero-out both cookies by setting maxAge: 0
   const base: CookieOptions = { ...COOKIE_OPTS, maxAge: 0, path: "/" };
   if (!isProd) delete (base as Partial<CookieOptions>).domain;
 
@@ -56,10 +43,7 @@ function clearAuthCookies(res: Response) {
   res.cookie("token_FrontEndAdmin_exp", "", { ...base, httpOnly: false });
 }
 
-/* ========================================================================== */
-/*  GET /api/dashboardAuth/me                                                 */
-/* ========================================================================== */
-router.get("/me", async (req: Request, res: Response): Promise<void> => {
+const getMe: RequestHandler = async (req, res): Promise<void> => {
   try {
     setNoStore(res);
 
@@ -89,25 +73,24 @@ router.get("/me", async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    // Rotate the token for another 30 minutes (sliding session)
+    // refresh sliding session
     const newToken = jwt.sign({ id: String(user._id) }, JWT_SECRET, { expiresIn: "30m" });
     setAuthCookies(res, newToken);
 
     res.status(200).json({ user });
+    return;
   } catch (err) {
-    console.error("Dashboard /me error:", err);
+    console.error("Dashboard auth error:", err);
     res.status(500).json({ message: "Internal server error" });
+    return;
   }
-});
+};
 
-/* ========================================================================== */
-/*  POST /api/dashboardAuth/logout                                            */
-/* ========================================================================== */
-router.post("/logout", (req: Request, res: Response): void => {
+/** Require explicit confirm flag to avoid accidental logouts */
+const logout: RequestHandler = (req, res): void => {
   setNoStore(res);
 
-  // Require explicit confirmation to avoid accidental logouts
-  const confirm = req.body?.confirm === true;
+  const confirm = req.body?.confirm === true; // ensure app.use(express.json()) is enabled
   if (!confirm) {
     res.status(400).json({ message: "Missing confirm flag" });
     return;
@@ -115,6 +98,12 @@ router.post("/logout", (req: Request, res: Response): void => {
 
   clearAuthCookies(res);
   res.status(200).json({ message: "Logged out successfully" });
-});
+  return;
+};
+
+router.get("/me", getMe);
+// Make sure JSON body parsing is enabled BEFORE this route, e.g. app.use(express.json());
+// If not global, you can do: router.post("/logout", express.json(), logout);
+router.post("/logout", logout);
 
 export default router;

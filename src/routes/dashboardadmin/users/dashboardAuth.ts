@@ -25,7 +25,7 @@ function setAuthCookies(res: Response, token: string) {
   const expMs = exp * 1000;
 
   const common: CookieOptions = {
-    ...COOKIE_OPTS,          // e.g. { domain: ".soukelmeuble.tn", sameSite: "lax", secure: true }
+    ...COOKIE_OPTS, // e.g. { domain: ".soukelmeuble.tn", sameSite: "lax", secure: true }
     maxAge: SHOULD_REFRESH_MS,
     path: "/",
   };
@@ -73,21 +73,31 @@ const getMe: RequestHandler = async (req, res): Promise<void> => {
       return;
     }
 
-    // keep JWT minimal; refresh token ttl
+    // refresh sliding session (keep JWT minimal)
     const newToken = jwt.sign({ id: String(user._id) }, JWT_SECRET, { expiresIn: "30m" });
     setAuthCookies(res, newToken);
 
     res.status(200).json({ user });
-    return;
   } catch (err) {
     console.error("Dashboard auth error:", err);
     res.status(500).json({ message: "Internal server error" });
-    return;
   }
 };
 
-const logout: RequestHandler = (_req, res): void => {
+/** Require explicit confirm flag to avoid accidental logouts after sign-in. */
+const logout: RequestHandler = (req, res): void => {
   setNoStore(res);
+
+  const confirm = req.body?.confirm === true; // ensure express.json() is enabled globally
+  if (!confirm) {
+    console.warn("Blocked logout without confirm", {
+      origin: req.get("origin"),
+      referer: req.get("referer"),
+    });
+    res.status(400).json({ message: "Missing confirm flag" });
+    return;
+  }
+
   clearAuthCookies(res);
   res.status(200).json({ message: "Logged out successfully" });
 };

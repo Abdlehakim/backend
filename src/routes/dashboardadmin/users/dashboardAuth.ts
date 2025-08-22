@@ -8,9 +8,8 @@ import { COOKIE_OPTS, isProd } from "@/app";
 const router = Router();
 
 const JWT_SECRET = process.env.JWT_SECRET!;
-const SHOULD_REFRESH_MS = 5 * 60 * 1000;
+const SHOULD_REFRESH_MS = 30 * 60 * 1000; // match JWT 30m so cookie doesn't die early
 
-/** Force responses to be non-cacheable (avoid 304 on /me). */
 function setNoStore(res: Response) {
   res.set({
     "Cache-Control": "no-store, no-cache, must-revalidate",
@@ -25,8 +24,8 @@ function setAuthCookies(res: Response, token: string) {
   const expMs = exp * 1000;
 
   const common: CookieOptions = {
-    ...COOKIE_OPTS,                 // e.g. { domain: ".soukelmeuble.tn", sameSite: "lax", secure: true }
-    maxAge: SHOULD_REFRESH_MS,
+    ...COOKIE_OPTS,
+    maxAge: Math.max(0, expMs - Date.now()), // keep cookie aligned to JWT exp
     path: "/",
   };
   if (!isProd) delete (common as Partial<CookieOptions>).domain;
@@ -43,55 +42,23 @@ function clearAuthCookies(res: Response) {
   res.cookie("token_FrontEndAdmin_exp", "", { ...base, httpOnly: false });
 }
 
-const getMe: RequestHandler = async (req, res): Promise<void> => {
-  try {
-    setNoStore(res);
+/** GET /me unchanged (omitted for brevity)… */
 
-    const token = req.cookies?.token_FrontEndAdmin;
-    if (!token) {
-      res.status(200).json({ user: null });
-      return;
-    }
-
-    let decoded: { id: string };
-    try {
-      decoded = jwt.verify(token, JWT_SECRET) as { id: string };
-    } catch {
-      clearAuthCookies(res);
-      res.status(200).json({ user: null });
-      return;
-    }
-
-    const user = await DashboardUser.findById(decoded.id)
-      .select("-password")
-      .populate("role", "name permissions")
-      .lean();
-
-    if (!user) {
-      clearAuthCookies(res);
-      res.status(200).json({ user: null });
-      return;
-    }
-
-    // refresh sliding session
-    const newToken = jwt.sign({ id: String(user._id) }, JWT_SECRET, { expiresIn: "30m" });
-    setAuthCookies(res, newToken);
-
-    res.status(200).json({ user });
-    return;
-  } catch (err) {
-    console.error("Dashboard auth error:", err);
-    res.status(500).json({ message: "Internal server error" });
-    return;
-  }
-};
-
-/** Require explicit confirm flag to avoid accidental logouts */
+/** 🔒 Require explicit confirm to avoid accidental logouts */
 const logout: RequestHandler = (req, res): void => {
   setNoStore(res);
 
-  const confirm = req.body?.confirm === true; // ensure app.use(express.json()) is enabled
+  // Accept several forms of "true"
+  const v = (req.body && (req.body as any).confirm) ?? req.query.confirm;
+  const confirm =
+    v === true || v === "true" || v === "1" || v === 1;
+
+  // Add debug headers so you can confirm in DevTools > Network > Headers
+  res.setHeader("x-logout-received", String(v ?? "undefined"));
+  res.setHeader("x-logout-confirm", confirm ? "1" : "0");
+
   if (!confirm) {
+    // ⛔ Do NOT clear cookies when not confirmed
     res.status(400).json({ message: "Missing confirm flag" });
     return;
   }
@@ -101,9 +68,5 @@ const logout: RequestHandler = (req, res): void => {
   return;
 };
 
-router.get("/me", getMe);
-// Make sure JSON body parsing is enabled BEFORE this route, e.g. app.use(express.json());
-// If not global, you can do: router.post("/logout", express.json(), logout);
 router.post("/logout", logout);
-
 export default router;

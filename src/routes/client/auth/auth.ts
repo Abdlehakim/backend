@@ -7,8 +7,7 @@
 import { Router, Request, Response, RequestHandler } from "express";
 import jwt from "jsonwebtoken";
 import Client from "@/models/Client";
-import { COOKIE_OPTS, isProd } from "@/app";   // shared opts + env helper
-
+import { COOKIE_OPTS, isProd } from "@/app";   
 const router = Router();
 
 /* ---------- env check ---------- */

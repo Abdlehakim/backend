@@ -10,12 +10,22 @@ const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET!;
 const SHOULD_REFRESH_MS = 30 * 60 * 1000;
 
+/** Force responses to be non-cacheable (avoid 304 on /me). */
+function setNoStore(res: Response) {
+  res.set({
+    "Cache-Control": "no-store, no-cache, must-revalidate",
+    Pragma: "no-cache",
+    Expires: "0",
+    Vary: "Cookie",
+  });
+}
+
 function setAuthCookies(res: Response, token: string) {
   const { exp } = jwt.decode(token) as { exp: number };
   const expMs = exp * 1000;
 
   const common: CookieOptions = {
-    ...COOKIE_OPTS,
+    ...COOKIE_OPTS,          // e.g. { domain: ".soukelmeuble.tn", sameSite: "lax", secure: true }
     maxAge: SHOULD_REFRESH_MS,
     path: "/",
   };
@@ -35,9 +45,11 @@ function clearAuthCookies(res: Response) {
 
 const getMe: RequestHandler = async (req, res): Promise<void> => {
   try {
+    setNoStore(res);
+
     const token = req.cookies?.token_FrontEndAdmin;
     if (!token) {
-      res.json({ user: null });
+      res.status(200).json({ user: null });
       return;
     }
 
@@ -46,7 +58,7 @@ const getMe: RequestHandler = async (req, res): Promise<void> => {
       decoded = jwt.verify(token, JWT_SECRET) as { id: string };
     } catch {
       clearAuthCookies(res);
-      res.json({ user: null });
+      res.status(200).json({ user: null });
       return;
     }
 
@@ -57,15 +69,15 @@ const getMe: RequestHandler = async (req, res): Promise<void> => {
 
     if (!user) {
       clearAuthCookies(res);
-      res.json({ user: null });
+      res.status(200).json({ user: null });
       return;
     }
 
-    // keep JWT minimal
+    // keep JWT minimal; refresh token ttl
     const newToken = jwt.sign({ id: String(user._id) }, JWT_SECRET, { expiresIn: "30m" });
     setAuthCookies(res, newToken);
 
-    res.json({ user });
+    res.status(200).json({ user });
     return;
   } catch (err) {
     console.error("Dashboard auth error:", err);
@@ -75,8 +87,9 @@ const getMe: RequestHandler = async (req, res): Promise<void> => {
 };
 
 const logout: RequestHandler = (_req, res): void => {
+  setNoStore(res);
   clearAuthCookies(res);
-  res.json({ message: "Logged out successfully" });
+  res.status(200).json({ message: "Logged out successfully" });
 };
 
 router.get("/me", getMe);

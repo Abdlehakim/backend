@@ -16,16 +16,15 @@ export function authenticateToken(
   res: Response,
   next: NextFunction
 ): void {
-  const token = req.cookies?.["token_FrontEndAdmind"];
+  const token = req.cookies?.["token_FrontEnd"];
   if (!token) {
     res.status(401).json({ message: 'No token provided' });
     return;
   }
 
-  console.log("token_FrontEndAdmin received:", token);
+  console.log("token_FrontEnd received:", token);
 
   try {
-    // JWT_SECRET is now definitely a string, so no TS error
     const decoded = jwt.verify(token, JWT_SECRET) as unknown as Decoded;
     (req as any).user = { id: decoded.id, email: decoded.email };
     next();

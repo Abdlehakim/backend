@@ -1,107 +1,68 @@
-// src/routes/client/auth/auth.ts
-/* -------------------------------------------------------------------------- */
-/*  src/routes/client/auth/auth.ts                                            */
-/*  Mirrors dashboardAuth pattern: 2 min JWT + mirror‑expiry cookie           */
-/* -------------------------------------------------------------------------- */
-
-import { Router, Request, Response, RequestHandler } from "express";
+/* ------------------------------------------------------------------
+   src/routes/client/auth/auth.ts
+------------------------------------------------------------------ */
+import { Router, Response, RequestHandler } from "express";
 import jwt from "jsonwebtoken";
 import Client from "@/models/Client";
-import { COOKIE_OPTS, isProd } from "@/app";   
+import {
+  issueClientToken,
+  setClientSessionCookies,
+  clearClientSessionCookies,
+  REFRESH_THRESHOLD_MS,
+} from "./sessionClient";
+
 const router = Router();
+const JWT_SECRET = process.env.JWT_SECRET!;
 
-/* ---------- env check ---------- */
-const JWT_SECRET = process.env.JWT_SECRET;
-if (!JWT_SECRET) throw new Error("Missing JWT_SECRET env variable");
+const logoutHandler: RequestHandler = (_req, res) => {
+  clearClientSessionCookies(res);
+  res.json({ message: "Logged out successfully" });
+};
 
-/* ---------- helpers ------------------------------------------------------- */
-// 30 minutes in milliseconds
-const SHOULD_REFRESH_MS = 30 * 60 * 1000;
-
-function setAuthCookies(res: Parameters<RequestHandler>[1], token: string) {
-  const { exp } = jwt.decode(token) as { exp: number };
-  const expMs = exp * 1000;
-
-  const common = { ...COOKIE_OPTS, maxAge: SHOULD_REFRESH_MS, path: "/" };
-  if (!isProd) delete (common as any).domain;
-
-  // ① real JWT — HttpOnly
-  res.cookie("token_FrontEnd", token, {
-    ...common,
-    httpOnly: true,
-  });
-
-  // ② mirror expiry — JS‑readable
-  res.cookie("token_FrontEnd_exp", expMs, {
-    ...common,
-    httpOnly: false,
+function setNoStore(res: Response) {
+  res.set({
+    "Cache-Control": "no-store, no-cache, must-revalidate",
+    Pragma: "no-cache",
+    Expires: "0",
+    Vary: "Cookie",
   });
 }
 
-function clearAuthCookies(res: Parameters<RequestHandler>[1]) {
-  // Approach ①: zero‑out both cookies by setting maxAge: 0
-  const base = { ...COOKIE_OPTS, maxAge: 0, path: "/" };
-
-  // expire the HttpOnly JWT
-  res.cookie("token_FrontEnd", "", {
-    ...base,
-    httpOnly: true,
-  });
-
-  // expire the JS‑readable mirror
-  res.cookie("token_FrontEnd_exp", "", {
-    ...base,
-    httpOnly: false,
-  });
-}
-/* ========================================================================== */
-/*  GET /api/auth/me                                                          */
-/* ========================================================================== */
-router.get("/me", async (req: any, res: Response): Promise<void> => {
+router.get("/me", (async (req: any, res: Response) => {
   try {
+    setNoStore(res);
     const token = req.cookies?.token_FrontEnd;
-    if (!token) {
-      res.json({ user: null });
-      return;
-    }
+    if (!token) return void res.json({ user: null });
 
-    let decoded: { id: string };
+    let decoded: { id: string; exp: number };
     try {
-      decoded = jwt.verify(token, JWT_SECRET) as { id: string };
+      decoded = jwt.verify(token, JWT_SECRET) as { id: string; exp: number };
     } catch {
-      clearAuthCookies(res);
-      res.json({ user: null });
-      return;
+      clearClientSessionCookies(res);
+      return void res.json({ user: null });
     }
 
     const user = await Client.findById(decoded.id).select("-password").lean();
     if (!user) {
-      clearAuthCookies(res);
-      res.json({ user: null });
-      return;
+      clearClientSessionCookies(res);
+      return void res.json({ user: null });
     }
 
-    // Rotate the token for another 2 minutes
-    const newToken = jwt.sign(
-      { id: user._id.toString(), email: (user as any).email },
-      JWT_SECRET,
-        { expiresIn: "30m" },
-    );
-    setAuthCookies(res, newToken);
+    const remaining = decoded.exp * 1000 - Date.now();
+    if (remaining <= REFRESH_THRESHOLD_MS) {
+      const newToken = issueClientToken(String(user._id));
+      setClientSessionCookies(res, newToken);
+    } else {
+      setClientSessionCookies(res, token);
+    }
 
-    res.json({ user });
+    return void res.json({ user });
   } catch (err) {
     console.error("Auth /me error:", err);
-    res.status(500).json({ message: "Internal server error" });
+    return void res.status(500).json({ message: "Internal server error" });
   }
-});
+}) as RequestHandler);
 
-/* ========================================================================== */
-/*  POST /api/auth/logout                                                     */
-/* ========================================================================== */
-router.post("/logout", (_req, res: Response): void => {
-  clearAuthCookies(res);
-  res.json({ message: "Logged out successfully" });
-});
+router.post("/logout", logoutHandler);
 
 export default router;

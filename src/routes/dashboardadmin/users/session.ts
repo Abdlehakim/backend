@@ -5,9 +5,9 @@ import { COOKIE_OPTS, isProd } from "@/app";
 const JWT_SECRET = process.env.JWT_SECRET!;
 
 /** ── Session policy (2 minutes) ───────────────────────────────── */
-export const SESSION_TTL_MIN = 2;                  
+export const SESSION_TTL_MIN = 5 * 60;                  
 export const SESSION_TTL_MS  = SESSION_TTL_MIN * 60 * 1000;
-export const REFRESH_THRESHOLD_MS = 30 * 1000;
+export const REFRESH_THRESHOLD_MS = 10 * 60 * 1000;
 
 /** ── Helpers ─────────────────────────────────────────────────── */
 export function issueToken(id: string) {

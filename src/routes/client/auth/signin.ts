@@ -1,159 +1,68 @@
-// src/routes/signin.ts
-/* -------------------------------------------------------------------------- */
-/*  src/routes/signin.ts                                                      */
-/*  Mirrors dashboardSignin pattern: 4 h JWT + mirror‑expiry cookie           */
-/* -------------------------------------------------------------------------- */
-
-import { Router, Request, Response, RequestHandler } from "express";
+/* ------------------------------------------------------------------
+   src/routes/client/auth/auth.ts
+------------------------------------------------------------------ */
+import { Router, Response, RequestHandler } from "express";
 import jwt from "jsonwebtoken";
-import { OAuth2Client, TokenPayload } from "google-auth-library";
-import Client, { IClient } from "@/models/Client";
-import { COOKIE_OPTS, isProd } from "@/app";
+import Client from "@/models/Client";
+import {
+  issueClientToken,
+  setClientSessionCookies,
+  clearClientSessionCookies,
+  REFRESH_THRESHOLD_MS,
+} from "./sessionClient";
 
-/* ---------- env checks ---------------------------------------------------- */
-const JWT_SECRET = process.env.JWT_SECRET;
-if (!JWT_SECRET) throw new Error("Missing JWT_SECRET env variable");
+const router = Router();
+const JWT_SECRET = process.env.JWT_SECRET!;
+const logoutHandler: RequestHandler = (_req, res) => {
+  clearClientSessionCookies(res);
+  res.json({ message: "Logged out successfully" });
+};
 
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
-if (!GOOGLE_CLIENT_ID) throw new Error("Missing GOOGLE_CLIENT_ID env variable");
 
-/* ---------- helpers ------------------------------------------------------- */
-// 30 minutes in milliseconds
-const SHOULD_REFRESH_MS = 30 * 60 * 1000;
-
-const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
-
-/** Sign a 4 h JWT */
-const signToken = (user: IClient) =>
-  jwt.sign({ id: user._id.toString(), email: user.email }, JWT_SECRET, {
-    expiresIn: "30m",
-  });
-
-/** Set both auth cookies (token + mirror exp) */
-function setAuthCookies(
-  res: Parameters<RequestHandler>[1],
-  token: string
-): void {
-  const { exp } = jwt.decode(token) as { exp: number };
-  const expMs = exp * 1000;
-
-  const common = { ...COOKIE_OPTS, maxAge: SHOULD_REFRESH_MS, path: "/" };
-  if (!isProd) delete (common as any).domain;
-
-  // ① real JWT — HttpOnly
-  res.cookie("token_FrontEnd", token, {
-    ...common,
-    httpOnly: true,
-  });
-
-  // ② mirror expiry — JS‑readable
-  res.cookie("token_FrontEnd_exp", expMs, {
-    ...common,
-    httpOnly: false,
+function setNoStore(res: Response) {
+  res.set({
+    "Cache-Control": "no-store, no-cache, must-revalidate",
+    Pragma: "no-cache",
+    Expires: "0",
+    Vary: "Cookie",
   });
 }
 
-const router = Router();
-
-/* ========================================================================== */
-/*  1) Email / Password Sign‑in                                               */
-/*     POST /api/signin                                                  */
-/* ========================================================================== */
-router.post("/", async (req: Request, res: Response) => {
+router.get("/me", (async (req: any, res: Response) => {
   try {
-    const { email, password } = req.body as {
-      email?: unknown;
-      password?: unknown;
-    };
+    setNoStore(res);
+    const token = req.cookies?.token_FrontEnd;
+    if (!token) return void res.json({ user: null });
 
-    if (typeof email !== "string" || typeof password !== "string") {
-      res.status(400).json({ message: "Email and password are required" });
-      return;
+    let decoded: { id: string; exp: number };
+    try {
+      decoded = jwt.verify(token, JWT_SECRET) as { id: string; exp: number };
+    } catch {
+      clearClientSessionCookies(res);
+      return void res.json({ user: null });
     }
 
-    const normalizedEmail = email.trim().toLowerCase();
-    const user = await Client.findOne({ email: normalizedEmail }).select(
-      "+password"
-    );
-
-    if (!user || !user.password || !(await (user as any).comparePassword(password))) {
-      res.status(401).json({ message: "Invalid credentials" });
-      return;
+    const user = await Client.findById(decoded.id).select("-password").lean();
+    if (!user) {
+      clearClientSessionCookies(res);
+      return void res.json({ user: null });
     }
 
-    const token = signToken(user);
-    setAuthCookies(res, token);
-
-    res.json({
-      user: { id: user._id.toString(), email: user.email },
-    });
-  } catch (err) {
-    console.error("Sign‑in Error:", err);
-    res.status(500).json({ message: "Internal server error" });
-  }
-});
-
-/* ========================================================================== */
-/*  2) Google OAuth Sign‑in                                                   */
-/*     POST /api/signin/google                                           */
-/* ========================================================================== */
-router.post("/google", async (req: Request, res: Response) => {
-  try {
-    const { idToken } = req.body as { idToken?: unknown };
-    if (typeof idToken !== "string") {
-      res.status(400).json({ message: "idToken is required" });
-      return;
-    }
-
-    const ticket = await googleClient.verifyIdToken({
-      idToken,
-      audience: GOOGLE_CLIENT_ID,
-    });
-
-    const payload = ticket.getPayload() as TokenPayload | null;
-    if (!payload?.email) {
-      res.status(401).json({ message: "Google authentication failed" });
-      return;
-    }
-
-    const email = payload.email.trim().toLowerCase();
-    const name = payload.name || payload.given_name || "";
-    const phone =
-      // @ts-expect-error – phone isn’t in the official type but we accept it
-      (payload.phone as string | undefined) ?? "";
-
-    /* ---------- upsert user ---------- */
-    let user = await Client.findOne({ email });
-    if (user) {
-      let updated = false;
-      if (name && user.username !== name) {
-        user.username = name;
-        updated = true;
-      }
-      if (phone && user.phone !== phone) {
-        user.phone = phone;
-        updated = true;
-      }
-      if (updated) await user.save();
+    const remaining = decoded.exp * 1000 - Date.now();
+    if (remaining <= REFRESH_THRESHOLD_MS) {
+      const newToken = issueClientToken(String(user._id));
+      setClientSessionCookies(res, newToken);
     } else {
-      user = await Client.create({
-        email,
-        username: name,
-        phone,
-        isGoogleAccount: true,
-      });
+      setClientSessionCookies(res, token);
     }
 
-    const token = signToken(user);
-    setAuthCookies(res, token);
-
-    res.json({
-      user: { id: user._id.toString(), email: user.email },
-    });
+    return void res.json({ user });
   } catch (err) {
-    console.error("Google Sign‑in Error:", err);
-    res.status(500).json({ message: "Internal server error" });
+    console.error("Auth /me error:", err);
+    return void res.status(500).json({ message: "Internal server error" });
   }
-});
+}) as RequestHandler);
+
+router.post("/logout", logoutHandler);
 
 export default router;

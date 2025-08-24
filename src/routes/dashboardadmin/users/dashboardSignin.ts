@@ -1,45 +1,27 @@
 /* ------------------------------------------------------------------
    src/routes/dashboardadmin/users/dashboardSignin.ts
-   ------------------------------------------------------------------ */
+------------------------------------------------------------------ */
 
 import { Router, Request, Response } from "express";
-import jwt from "jsonwebtoken";
 import DashboardUser from "@/models/dashboardadmin/DashboardUser";
-import { COOKIE_OPTS, isProd } from "@/app";
+import { issueToken, setSessionCookies } from "./session";
 
 const router = Router();
 
-const JWT_SECRET = process.env.JWT_SECRET;
-if (!JWT_SECRET) throw new Error("Missing JWT_SECRET env variable");
-
-// 5 minutes in milliseconds
-const SHOULD_REFRESH_MS = 5 * 60 * 1000;
-
-const signToken = (user: { _id: any; email: string }) =>
-  jwt.sign({ id: user._id.toString(), email: user.email }, JWT_SECRET, {
-    expiresIn: "5m",
-  });
-
-function setAuthCookies(res: Response, token: string) {
-  const { exp } = jwt.decode(token) as { exp: number };
-  const expMs = exp * 1000;
-
-  const common: any = { ...COOKIE_OPTS, maxAge: SHOULD_REFRESH_MS, path: "/" };
-  if (!isProd) delete common.domain;
-
-  res.cookie("token_FrontEndAdmin", token, {
-    ...common,
-    httpOnly: true,
-  });
-
-  res.cookie("token_FrontEndAdmin_exp", expMs, {
-    ...common,
-    httpOnly: false,
+/** Avoid any intermediary/proxy/browser caching of the auth response */
+function setNoStore(res: Response) {
+  res.set({
+    "Cache-Control": "no-store, no-cache, must-revalidate",
+    Pragma: "no-cache",
+    Expires: "0",
+    Vary: "Cookie",
   });
 }
 
 router.post("/", async (req: Request, res: Response): Promise<void> => {
   try {
+    setNoStore(res);
+
     const { email, password } = req.body as {
       email?: unknown;
       password?: unknown;
@@ -51,20 +33,21 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     }
 
     const normalizedEmail = email.trim().toLowerCase();
-    const user = await DashboardUser.findOne({ email: normalizedEmail }).select(
-      "+password"
-    );
 
+    const user = await DashboardUser.findOne({ email: normalizedEmail }).select("+password");
     if (!user || !user.password || !(await (user as any).comparePassword(password))) {
       res.status(401).json({ message: "Invalid credentials" });
       return;
     }
 
-    const token = signToken(user);
-    setAuthCookies(res, token);
+    // Minimal JWT (id only) using the shared session policy (SESSION_TTL_* from src/auth/session.ts)
+    const token = issueToken(String(user._id));
 
-    res.json({
-      user: { id: user._id.toString(), email: user.email },
+    // Set aligned cookies using the shared helper
+    setSessionCookies(res, token);
+
+    res.status(200).json({
+      user: { id: String(user._id), email: user.email },
     });
   } catch (err) {
     console.error("Dashboard Sign-in Error:", err);

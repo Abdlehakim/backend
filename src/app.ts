@@ -70,6 +70,7 @@ import updateAuth from "./routes/client/settings/updateClientdetails";
 /* ---------- Product reviews & similar ---------- */
 import PostProductReviews from "./routes/products/PostProductReviews";
 import SimilarProduct from "./routes/products/SimilarProduct";
+import SearchProduct from "./routes/products/SearchProduct";
 
 /* ---------- Dashboard Payment + Currency settings   ---------- */
 import updatePaymentSettings from "./routes/dashboardadmin/payment/payment-settings/updatePaymentSettings";
@@ -280,6 +281,7 @@ app.use("/api/brands", brandsRoutes);
 app.use("/api/store", storesRoutes);
 app.use("/api/HomePageBanner", HomeBanner);
 app.use("/api/products/SimilarProduct", SimilarProduct);
+app.use("/api/products", SearchProduct);
 app.use("/api/products/MainProductSection", MainProductSection);
 app.use("/api/products/ProductDetails", ProductDetails);
 app.use("/api/products/ProductReviews", ProductReviews);

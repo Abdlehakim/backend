@@ -13,14 +13,6 @@ import { requirePermission } from "@/middleware/requireDashboardPermission";
 
 const router = Router();
 
-/* ------------------------------------------------------------------
-   Helpers
------------------------------------------------------------------- */
-
-/**
- * Transforme l’ID client (Account / Shop / Company) en objet lisible pour
- * le front (même shape que SelectClient).
- */
 async function resolveClient(
   id: Types.ObjectId | string,
 ): Promise<
@@ -74,9 +66,7 @@ async function resolveClient(
   return null;
 }
 
-/* ------------------------------------------------------------------
-   Route
------------------------------------------------------------------- */
+
 router.get(
   "/:orderId",
   requirePermission("M_Access"),

@@ -24,16 +24,17 @@ router.post(
 
       const deliveryArray = Array.isArray(DeliveryAddress) ? DeliveryAddress : [];
       const pickupArray = Array.isArray(pickupMagasin) ? pickupMagasin : [];
+      const paymentArray = Array.isArray(paymentMethod) ? paymentMethod : [];
       const deliveryMethodArray = Array.isArray(deliveryMethod) ? deliveryMethod : [];
 
       const orderDoc = new Order({
         client,
         clientName,
-        DeliveryAddress: deliveryArray,
-        pickupMagasin: pickupArray,
-        orderItems,
-        paymentMethod,
-        deliveryMethod: deliveryMethodArray,
+        DeliveryAddress: deliveryArray,          // [{ AddressID, DeliverToAddress }]
+        pickupMagasin: pickupArray,              // [{ MagasinID, MagasinName, MagasinAddress }]
+        orderItems,                              // as provided
+        paymentMethod: paymentArray,             // [{ PaymentMethodID, PaymentMethodLabel }]
+        deliveryMethod: deliveryMethodArray,     // [{ deliveryMethodID, deliveryMethodName, Cost, expectedDeliveryDate? }]
       });
 
       const saved = await orderDoc.save();

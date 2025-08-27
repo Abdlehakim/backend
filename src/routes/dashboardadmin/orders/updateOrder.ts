@@ -1,8 +1,6 @@
 /* ------------------------------------------------------------------
-   backend/src/routes/dashboardadmin/orders/updateOrder.ts        (renamed
-   uniquement pour lisibilité dans ce snippet – gardez votre nom de fichier)
+   backend/src/routes/dashboardadmin/orders/updateOrder.ts
    PATCH /api/dashboardadmin/orders/update/:orderId
-   Mise à jour : `pickupMagasin` est désormais un ARRAY
 ------------------------------------------------------------------ */
 
 import express, { Request, Response } from "express";
@@ -20,20 +18,23 @@ const router = express.Router();
 async function resolveClientName(id: string): Promise<string | null> {
   if (!mongoose.Types.ObjectId.isValid(id)) return null;
 
+  // Account user
   const account = await Client.findById(id)
-    .select("username name")
-    .lean<{ username?: string; name?: string }>();
-  if (account) return account.username ?? account.name ?? "";
+    .select("username")
+    .lean<{ username?: string }>();
+  if (account) return account.username ?? "";
 
+  // Shop
   const shop = await ClientShop.findById(id)
     .select("name")
     .lean<{ name?: string }>();
   if (shop) return shop.name ?? "";
 
+  // Company (schema uses companyName)
   const company = await ClientCompany.findById(id)
-    .select("name")
-    .lean<{ name?: string }>();
-  if (company) return company.name ?? "";
+    .select("companyName")
+    .lean<{ companyName?: string }>();
+  if (company) return company.companyName ?? "";
 
   return null;
 }
@@ -50,43 +51,60 @@ router.patch(
     }
 
     try {
+      const body = req.body as Partial<IOrder> & {
+        clientId?: string | null;
+        client?: string | null;
+      };
+
       const {
-        clientId,
         DeliveryAddress,
         pickupMagasin,
         orderItems,
         paymentMethod,
         deliveryMethod,
-      } = req.body as Partial<IOrder> & { clientId?: string | null };
+      } = body;
 
-      const update: Partial<IOrder> & { clientName?: string } = {
-        paymentMethod,
-        deliveryMethod,
-      };
+      // Accept either `client` or `clientId` from the frontend
+      const rawClientId = body.client ?? body.clientId;
 
-      if (typeof clientId !== "undefined") {
-        if (clientId) {
-          update.client = new mongoose.Types.ObjectId(clientId);
-          const name = await resolveClientName(clientId);
+      const update: Partial<IOrder> & { clientName?: string } = {};
+
+      // Update client + computed clientName if provided
+      if (typeof rawClientId !== "undefined") {
+        if (rawClientId) {
+          if (!mongoose.Types.ObjectId.isValid(rawClientId)) {
+            res.status(400).json({ message: "Identifiant client invalide." });
+            return;
+          }
+          update.client = new mongoose.Types.ObjectId(rawClientId);
+          const name = await resolveClientName(rawClientId);
           if (name !== null) update.clientName = name;
         } else {
-          update.client = undefined;
+          // explicit clear (unlikely in real life, but supported)
+          update.client = undefined as unknown as IOrder["client"];
           update.clientName = "";
         }
       }
 
+      // Overwrite arrays ONLY if provided
       if (Array.isArray(DeliveryAddress)) {
-        update.DeliveryAddress = DeliveryAddress;
+        // expected shape: [{ AddressID, DeliverToAddress }]
+        update.DeliveryAddress = DeliveryAddress as IOrder["DeliveryAddress"];
       }
-
       if (Array.isArray(pickupMagasin)) {
-        update.pickupMagasin = pickupMagasin;
-      } else if (pickupMagasin === null) {
-        update.pickupMagasin = [];
+        // expected shape: [{ MagasinID, MagasinName?, MagasinAddress }]
+        update.pickupMagasin = pickupMagasin as IOrder["pickupMagasin"];
       }
-
       if (Array.isArray(orderItems)) {
-        update.orderItems = orderItems;
+        update.orderItems = orderItems as IOrder["orderItems"];
+      }
+      if (Array.isArray(paymentMethod)) {
+        // expected shape: [{ PaymentMethodID, PaymentMethodLabel }]
+        update.paymentMethod = paymentMethod as IOrder["paymentMethod"];
+      }
+      if (Array.isArray(deliveryMethod)) {
+        // expected shape: [{ deliveryMethodID, deliveryMethodName?, Cost, expectedDeliveryDate? }]
+        update.deliveryMethod = deliveryMethod as IOrder["deliveryMethod"];
       }
 
       const updated = await Order.findByIdAndUpdate(orderId, update, {
@@ -95,7 +113,9 @@ router.patch(
       })
         .populate("client")
         .populate("DeliveryAddress.AddressID")
-        .populate("pickupMagasin.MagasinID");
+        .populate("pickupMagasin.MagasinID")
+        .populate("paymentMethod.PaymentMethodID")
+        .populate("deliveryMethod.deliveryMethodID");
 
       if (!updated) {
         res

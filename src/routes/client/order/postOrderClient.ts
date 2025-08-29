@@ -36,8 +36,40 @@ type ReqDeliveryMethodItem = {
   expectedDeliveryDate?: string | Date;
 };
 
+type ReqItemAttribute = {
+  attribute?: string;
+  name?: string;
+  value?: string;
+};
+
+type ReqItem = {
+  _id?: string;
+  reference?: string;
+  name?: string;
+  quantity?: number;
+  tva?: number;
+  mainImageUrl?: string;
+  discount?: number;
+  price?: number;
+  attributes?: ReqItemAttribute[];
+};
+
+interface BodyPayload {
+  DeliveryAddress?: ReqDeliveryAddressItem[];
+  pickupMagasin?: ReqPickupMagasinItem[];
+  pickupStore?: ReqPickupStore;
+  paymentMethod?: string;
+  paymentMethodId?: string;
+  deliveryMethod?: ReqDeliveryMethodItem[];
+  items?: ReqItem[];
+}
+
 function isValidObjectId(id?: string): id is string {
   return !!id && mongoose.isValidObjectId(id);
+}
+
+interface AuthenticatedRequest extends Request {
+  user?: { id?: string };
 }
 
 router.post(
@@ -45,7 +77,8 @@ router.post(
   authenticateToken,
   async (req: Request, res: Response): Promise<void> => {
     try {
-      const userId = (req as any).user?.id as string | undefined;
+      const { user } = (req as unknown as AuthenticatedRequest) || {};
+      const userId = user?.id;
       if (!userId) {
         res.status(401).json({ error: "Unauthorized: User not found." });
         return;
@@ -59,15 +92,7 @@ router.post(
         paymentMethodId,
         deliveryMethod,
         items,
-      }: {
-        DeliveryAddress?: ReqDeliveryAddressItem[];
-        pickupMagasin?: ReqPickupMagasinItem[];
-        pickupStore?: ReqPickupStore;
-        paymentMethod?: string;
-        paymentMethodId?: string;
-        deliveryMethod?: ReqDeliveryMethodItem[];
-        items?: any[];
-      } = req.body || {};
+      } = (req.body as BodyPayload) || {};
 
       if (!Array.isArray(items) || items.length === 0) {
         res.status(400).json({ error: "Missing items." });
@@ -87,7 +112,8 @@ router.post(
 
       if (!hasDelivery && !hasPickupMagasinArray && !hasPickupStore) {
         res.status(400).json({
-          error: "Provide a DeliveryAddress array or a pickupMagasin array or pickupStore.",
+          error:
+            "Provide a DeliveryAddress array or a pickupMagasin array or pickupStore.",
         });
         return;
       }
@@ -99,46 +125,83 @@ router.post(
 
       const foundUser = await Client.findById(userId).exec();
       if (!foundUser) {
-        res.status(404).json({ error: "No matching user found for the provided token." });
+        res
+          .status(404)
+          .json({ error: "No matching user found for the provided token." });
         return;
       }
-
+      const fu = foundUser as unknown as {
+        fullName?: string;
+        name?: string;
+        username?: string;
+        companyName?: string;
+        email?: string;
+      };
       const clientName =
-        (foundUser as any).fullName ||
-        (foundUser as any).name ||
-        (foundUser as any).username ||
-        (foundUser as any).companyName ||
-        (foundUser as any).email ||
+        fu.fullName ??
+        fu.name ??
+        fu.username ??
+        fu.companyName ??
+        fu.email ??
         "Client";
 
-      const orderItems = items.map((item: any) => ({
-        product: isValidObjectId(item._id) ? new mongoose.Types.ObjectId(item._id) : undefined,
-        reference: String(item.reference ?? ""),
-        name: String(item.name ?? ""),
-        quantity: Number(item.quantity ?? 1),
-        tva: Number(item.tva ?? 0),
-        mainImageUrl: String(item.mainImageUrl ?? ""),
-        discount: Number(item.discount ?? 0),
-        price: Number(item.price ?? 0),
-      }));
+      const orderItems = items.map((item) => {
+        const productId = item?._id;
+        const attrs: {
+          attribute: mongoose.Types.ObjectId;
+          name: string;
+          value: string;
+        }[] = [];
+
+        if (Array.isArray(item.attributes)) {
+          for (const a of item.attributes) {
+            const id = a?.attribute;
+            const nm = (a?.name || "").trim();
+            const val = (a?.value || "").trim();
+            if (!isValidObjectId(id) || !nm || !val) continue;
+            attrs.push({
+              attribute: new mongoose.Types.ObjectId(id),
+              name: nm,
+              value: val,
+            });
+          }
+        }
+
+        return {
+          product: isValidObjectId(productId)
+            ? new mongoose.Types.ObjectId(productId)
+            : undefined,
+          reference: String(item.reference ?? ""),
+          name: String(item.name ?? ""),
+          quantity: Number(item.quantity ?? 1),
+          tva: Number(item.tva ?? 0),
+          mainImageUrl: String(item.mainImageUrl ?? ""),
+          discount: Number(item.discount ?? 0),
+          price: Number(item.price ?? 0),
+          attributes: attrs,
+        };
+      });
 
       if (orderItems.some((oi) => !oi.product)) {
         res.status(400).json({ error: "Invalid product id in items." });
         return;
       }
 
-      const deliveryAddressDoc: { AddressID: mongoose.Types.ObjectId; DeliverToAddress: string }[] = [];
+      const deliveryAddressDoc: {
+        AddressID: mongoose.Types.ObjectId;
+        DeliverToAddress: string;
+      }[] = [];
       if (hasDelivery && Array.isArray(DeliveryAddress)) {
         for (const d of DeliveryAddress) {
           const rawId = d?.AddressID || d?.Address;
           const deliverTo = (d?.DeliverToAddress || "").trim();
-
           if (!isValidObjectId(rawId)) continue;
           if (!deliverTo) {
-            res.status(400).json({ error: "DeliverToAddress is required for DeliveryAddress." });
+            res.status(400).json({
+              error: "DeliverToAddress is required for DeliveryAddress.",
+            });
             return;
           }
-
           deliveryAddressDoc.push({
             AddressID: new mongoose.Types.ObjectId(rawId),
             DeliverToAddress: deliverTo,
@@ -151,21 +214,20 @@ router.post(
         MagasinAddress: string;
         MagasinName: string;
       }[] = [];
-
       if (hasPickupMagasinArray && Array.isArray(pickupMagasin)) {
         for (const p of pickupMagasin) {
           const rawId = p?.MagasinID;
           const addr = (p?.MagasinAddress || "").trim();
           const name = (p?.MagasinName || "").trim();
-
           if (!isValidObjectId(rawId)) continue;
           if (!addr) {
-            res.status(400).json({ error: "MagasinAddress is required for pickupMagasin." });
+            res.status(400).json({
+              error: "MagasinAddress is required for pickupMagasin.",
+            });
             return;
           }
-
           pickupMagasinDoc.push({
-            MagasinID: new mongoose.Types.ObjectId(rawId!),
+            MagasinID: new mongoose.Types.ObjectId(rawId),
             MagasinAddress: addr,
             MagasinName: name || "",
           });
@@ -175,28 +237,33 @@ router.post(
       if (!pickupMagasinDoc.length && hasPickupStore) {
         if (typeof pickupStore === "string") {
           if (!isValidObjectId(pickupStore)) {
-            res.status(400).json({ error: "pickupStore must be a valid ObjectId or object with id." });
+            res.status(400).json({
+              error:
+                "pickupStore must be a valid ObjectId or object with id.",
+            });
             return;
           }
           res.status(400).json({
             error:
-              "MagasinAddress is required for pickup. Send pickupMagasin[{ MagasinID, MagasinAddress, MagasinName }] or pickupStore as { id, address, name }. ",
+              "MagasinAddress is required for pickup. Send pickupMagasin[{ MagasinID, MagasinAddress, MagasinName }] or pickupStore as { id, address, name }.",
           });
           return;
         } else if (pickupStore && typeof pickupStore === "object") {
           const rawId = pickupStore.id;
           const addr = (pickupStore.address || "").trim();
           const name = (pickupStore.name || "").trim();
-
           if (!isValidObjectId(rawId)) {
-            res.status(400).json({ error: "pickupStore.id must be a valid ObjectId." });
+            res
+              .status(400)
+              .json({ error: "pickupStore.id must be a valid ObjectId." });
             return;
           }
           if (!addr) {
-            res.status(400).json({ error: "pickupStore.address is required for pickup." });
+            res
+              .status(400)
+              .json({ error: "pickupStore.address is required for pickup." });
             return;
           }
-
           pickupMagasinDoc.push({
             MagasinID: new mongoose.Types.ObjectId(rawId),
             MagasinAddress: addr,
@@ -223,7 +290,10 @@ router.post(
             .lean()
         : [];
 
-      const optMap = new Map<string, { name?: string; price?: number; estimatedDays?: number }>();
+      const optMap = new Map<
+        string,
+        { name?: string; price?: number; estimatedDays?: number }
+      >();
       for (const o of options) {
         optMap.set(String(o._id), {
           name: o.name,
@@ -260,7 +330,7 @@ router.post(
 
         let expected: Date | undefined;
         if (dm?.expectedDeliveryDate) {
-          const d = new Date(dm.expectedDeliveryDate as any);
+          const d = new Date(dm.expectedDeliveryDate as Date);
           if (!isNaN(d.getTime())) expected = d;
         } else if (typeof opt?.estimatedDays === "number") {
           const d = new Date();
@@ -278,31 +348,50 @@ router.post(
 
       if (!deliveryMethodDoc.length) {
         res.status(400).json({
-          error: "deliveryMethod must include at least one valid entry with deliveryMethodID.",
+          error:
+            "deliveryMethod must include at least one valid entry with deliveryMethodID.",
         });
         return;
       }
 
-      let pmDoc: any = null;
+      type PaymentMethodLean = {
+        _id: mongoose.Types.ObjectId;
+        label?: string;
+        name?: string;
+      };
+      let pmDoc: PaymentMethodLean | null = null;
+
       if (isValidObjectId(paymentMethodId)) {
-        pmDoc = await PaymentMethod.findById(paymentMethodId).exec();
+        pmDoc = await PaymentMethod.findById(paymentMethodId)
+          .select("_id label name")
+          .lean<PaymentMethodLean>()
+          .exec();
       }
       if (!pmDoc && paymentMethod) {
         pmDoc =
-          (await PaymentMethod.findOne({ label: paymentMethod }).exec()) ||
-          (await PaymentMethod.findOne({ name: paymentMethod }).exec());
+          (await PaymentMethod.findOne({ label: paymentMethod })
+            .select("_id label name")
+            .lean<PaymentMethodLean>()
+            .exec()) ||
+          (await PaymentMethod.findOne({ name: paymentMethod })
+            .select("_id label name")
+            .lean<PaymentMethodLean>()
+            .exec());
       }
       if (!pmDoc) {
         res.status(400).json({
-          error: "Payment method not found (provide valid paymentMethodId or a known label/name).",
+          error:
+            "Payment method not found (provide valid paymentMethodId or a known label/name).",
         });
         return;
       }
 
       const paymentMethodArray = [
         {
-          PaymentMethodID: pmDoc._id as mongoose.Types.ObjectId,
-          PaymentMethodLabel: String(paymentMethod ?? pmDoc.label ?? pmDoc.name ?? ""),
+          PaymentMethodID: pmDoc._id,
+          PaymentMethodLabel: String(
+            paymentMethod ?? pmDoc.label ?? pmDoc.name ?? ""
+          ),
         },
       ];
 
@@ -318,13 +407,18 @@ router.post(
 
       const savedOrder = await newOrder.save();
       res.status(200).json({ message: "Order created", ref: savedOrder.ref });
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error creating order:", error);
-      if (error?.name === "ValidationError") {
-        res.status(400).json({ error: String(error.message) });
+      const maybe = error as { name?: string; message?: unknown };
+      if (maybe?.name === "ValidationError") {
+        res.status(400).json({
+          error: String(maybe.message ?? "Validation error"),
+        });
         return;
       }
-      res.status(500).json({ error: "Server error. Unable to create the order at this time." });
+      res.status(500).json({
+        error: "Server error. Unable to create the order at this time.",
+      });
     }
   }
 );

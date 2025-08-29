@@ -176,6 +176,7 @@ router.get("/products/:slug", async (req, res) => {
         $project: {
           _id: 1,
           name: 1,
+          tva: 1,
           slug: 1,
           price: 1,
           discount: 1,

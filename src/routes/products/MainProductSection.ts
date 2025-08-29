@@ -172,6 +172,82 @@ router.get("/similarById/:id", async (req, res) => {
 });
 
 
+/* ================================================================== */
+/*  GET /api/products/MainProductSection/attributes/:productId        */
+/*  Returns ONLY the product's attributes (lightweight)               */
+/* ================================================================== */
+router.get(
+  "/attributes/:productId",
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { productId } = req.params;
+
+      // If you ever want to support slug too, keep this fallback:
+      const byId = mongoose.isValidObjectId(productId);
+      const match = byId ? { _id: productId } : { slug: productId };
+
+      const doc = await Product.findOne({
+        ...match,
+        vadmin: "approve",
+      })
+        .select({ attributes: 1, _id: 0 })
+        .populate({
+          path: "attributes.attributeSelected",
+          // model declared in schema, passing name is optional — kept explicit:
+          model: ProductAttribute,
+          select: "name type", // keep payload small
+        })
+        .lean();
+
+      if (!doc) {
+        res.status(404).json({ error: "Product not found" });
+        return;
+      }
+
+      // Normalize the payload into a compact, frontend-friendly shape
+      // Attribute type on your model can be string | string[]; collapse to one string.
+      const collapseType = (t: unknown): string => {
+        if (Array.isArray(t) && t.length > 0) return String(t[0]);
+        if (typeof t === "string") return t;
+        return "other type";
+      };
+
+      const cleanValue = (v: unknown) => {
+        if (v === undefined || v === null) return null;
+        if (typeof v === "string") return v;
+        if (Array.isArray(v)) {
+          return v.map((o: any) => {
+            const out: Record<string, string> = { name: String(o?.name ?? "") };
+            if (o?.value) out.value = String(o.value);
+            if (o?.hex) out.hex = String(o.hex);
+            if (o?.image) out.image = String(o.image);
+            return out;
+          });
+        }
+        return null;
+      };
+
+      const attrs = (doc.attributes ?? []).map((row: any) => {
+        const sel = row?.attributeSelected;
+        return {
+          attributeSelected: {
+            _id: String(sel?._id ?? ""),
+            name: String(sel?.name ?? "Attribute"),
+            type: collapseType(sel?.type),
+          },
+          value: cleanValue(row?.value),
+        };
+      });
+
+      res.json(attrs);
+    } catch (err) {
+      console.error("attributes/:productId error:", err);
+      res.status(500).json({ error: "Error fetching attributes" });
+    }
+  }
+);
+
+
 
 
 export default router;

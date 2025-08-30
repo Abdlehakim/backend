@@ -10,7 +10,7 @@ const router = Router();
 
 /**
  * POST /api/dashboardadmin/website/company-info/createCompanyInfo
- * — accepts “name”, “description”, “email”, “phone”, “address”, “city”,
+ * — accepts “name”, “description”, “email”, “phone”, “vat”, “address”, “city”,
  *   “zipcode”, “governorate”, optional “facebook”, “linkedin”, “instagram”,
  *   optional “banner”, “logo”, “contactBanner” uploads,
  *   stores images in Cloudinary (folder “company”),
@@ -43,6 +43,7 @@ router.post(
         description = "",
         email = "",
         phone = "",
+        vat = "", // ← Matricule fiscale
         address = "",
         city = "",
         zipcode = "",
@@ -55,6 +56,7 @@ router.post(
         description?: string;
         email?: string;
         phone?: string;
+        vat?: string;        // ← Matricule fiscale
         address?: string;
         city?: string;
         zipcode?: string;
@@ -66,37 +68,49 @@ router.post(
 
       if (!name.trim()) {
         res.status(400).json({ success: false, message: "Name is required." });
+        return;
       }
       if (!description.trim()) {
         res.status(400).json({ success: false, message: "Description is required." });
+        return;
       }
       if (!email.trim()) {
         res.status(400).json({ success: false, message: "Email is required." });
+        return;
       }
       if (!phone.trim()) {
         res.status(400).json({ success: false, message: "Valid phone number is required." });
+        return;
+      }
+      if (!vat.trim()) {
+        res.status(400).json({ success: false, message: "VAT (Matricule fiscale) is required." });
+        return;
       }
       if (!address.trim()) {
         res.status(400).json({ success: false, message: "Address is required." });
+        return;
       }
       if (!city.trim()) {
         res.status(400).json({ success: false, message: "City is required." });
+        return;
       }
       if (!zipcode.trim()) {
         res.status(400).json({ success: false, message: "Zipcode is required." });
+        return;
       }
       if (!governorate.trim()) {
         res.status(400).json({ success: false, message: "Governorate is required." });
+        return;
       }
 
       // Handle uploads
       const files = req.files as Record<string, Express.Multer.File[]>;
       let bannerImageUrl: string | undefined,
-          bannerImageId:  string | undefined,
-          logoImageUrl:   string | undefined,
-          logoImageId:    string | undefined,
-          contactBannerUrl: string | undefined,
-          contactBannerId:  string | undefined;
+        bannerImageId: string | undefined,
+        logoImageUrl: string | undefined,
+        logoImageId: string | undefined,
+        contactBannerUrl: string | undefined,
+        contactBannerId: string | undefined;
 
       if (files.banner?.[0]) {
         const { secureUrl, publicId } = await uploadToCloudinary(files.banner[0], "company");
@@ -116,23 +130,24 @@ router.post(
 
       // Create the document
       const created = await CompanyData.create({
-        name:             name.trim(),
+        name: name.trim(),
         bannerImageUrl,
         bannerImageId,
         logoImageUrl,
         logoImageId,
         contactBannerUrl,
         contactBannerId,
-        description:      description.trim(),
-        email:            email.trim(),
-        phone:            phone.trim(),
-        address:          address.trim(),
-        city:             city.trim(),
-        zipcode:          zipcode.trim(),
-        governorate:      governorate.trim(),
-        facebook:         facebook?.trim(),
-        linkedin:         linkedin?.trim(),
-        instagram:        instagram?.trim(),
+        description: description.trim(),
+        email: email.trim(),
+        phone: phone.trim(),
+        vat: vat.trim(), // ← save VAT
+        address: address.trim(),
+        city: city.trim(),
+        zipcode: zipcode.trim(),
+        governorate: governorate.trim(),
+        facebook: facebook?.trim(),
+        linkedin: linkedin?.trim(),
+        instagram: instagram?.trim(),
       } as Partial<ICompanyData>);
 
       res

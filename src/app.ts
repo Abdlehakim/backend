@@ -236,9 +236,9 @@ import createHomePageData from "./routes/dashboardadmin/website/homepage/createh
 import getHomePageData from "./routes/dashboardadmin/website/homepage/gethomePageData";
 import updateHomePageData from "./routes/dashboardadmin/website/homepage/updatehomePageData";
 
-import createProductPageData from "./routes/dashboardadmin/website/productpage/createProductPageData";
-import getProductPageData    from "./routes/dashboardadmin/website/productpage/getProductPageData";
-import updateProductPageData from "./routes/dashboardadmin/website/productpage/updateProductPageData";
+import CreateWebsiteTitres from "./routes/dashboardadmin/website/website-titres/CreateWebsiteTitres";
+import GetWebsiteTitres    from "./routes/dashboardadmin/website/website-titres/GetWebsiteTitres";
+import updateWebsiteTitres from "./routes/dashboardadmin/website/website-titres/updateWebsiteTitres";
 
 import createCompanyInfo from "./routes/dashboardadmin/website/company-info/createCompanyInfo";
 import getCompanyInfo from "./routes/dashboardadmin/website/company-info/getCompanyInfo";
@@ -267,6 +267,8 @@ import deletePost from "./routes/dashboardadmin/blog/post/deletePost";
 import getAllPost from "./routes/dashboardadmin/blog/post/getAllPost";
 import getPostById from "./routes/dashboardadmin/blog/post/getPostById";
 import updatePost from "./routes/dashboardadmin/blog/post/updatePost";
+
+import invoicePdfRouter from "@/routes/pdf/invoicePdf";
 
 /* 5️⃣  MOUNT PATHS (client) -------------------------------------------- */
 app.use("/api/signin", signinClient);
@@ -421,9 +423,9 @@ app.use("/api/dashboardadmin/website/homepage", createHomePageData);
 app.use("/api/dashboardadmin/website/homepage", getHomePageData);
 app.use("/api/dashboardadmin/website/homepage", updateHomePageData);
 
-app.use("/api/dashboardadmin/website/productpage", createProductPageData);
-app.use("/api/dashboardadmin/website/productpage", getProductPageData);
-app.use("/api/dashboardadmin/website/productpage", updateProductPageData);
+app.use("/api/dashboardadmin/website", CreateWebsiteTitres);
+app.use("/api/dashboardadmin/website", GetWebsiteTitres);
+app.use("/api/dashboardadmin/website", updateWebsiteTitres);
 
 app.use("/api/dashboardadmin/website/company-info", createCompanyInfo);
 app.use("/api/dashboardadmin/website/company-info", getCompanyInfo);
@@ -455,6 +457,8 @@ app.use("/api/dashboardadmin/blog/post", deletePost);
 app.use("/api/dashboardadmin/blog/post", getAllPost);
 app.use("/api/dashboardadmin/blog/post", getPostById);
 app.use("/api/dashboardadmin/blog/post", updatePost);
+
+app.use("/api/pdf", invoicePdfRouter);
 
 /* 6️⃣  Health checks + 404 --------------------------------------------- */
 const apiHealth: RequestHandler = (_req, res) => {

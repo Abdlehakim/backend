@@ -3,18 +3,18 @@ import mongoose from "mongoose";
 
 import Product          from "@/models/stock/Product";
 import ProductAttribute from "@/models/stock/ProductAttribute";
-import ProductPageData from "@/models/websitedata/productPageData";
+import websiteTitres from "@/models/websitedata/websiteTitres";
 
 
 const router = Router();
 
 
 router.get(
-  '/productPageTitlesData',
+  '/SimilarProductTitles',
   async (req: Request, res: Response): Promise<void> => {
     try {
-      const titles = await ProductPageData.findOne()
-        .select("SPTitle SPSubTitle")
+      const titles = await websiteTitres.findOne()
+        .select("SimilarProductTitre SimilarProductSubTitre")
         .exec();
 
       res.json(titles);

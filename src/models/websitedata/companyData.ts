@@ -13,6 +13,7 @@ export interface ICompanyData extends Document {
   description: string;
   email: string;
   phone: string;
+  vat: string;              // ← Matricule fiscale
   address: string;
   city: string;
   zipcode: string;
@@ -65,6 +66,11 @@ const companyDataSchema = new Schema<ICompanyData>(
     phone: {
       type: String,
       required: true,
+    },
+    vat: {                 // ← Matricule fiscale
+      type: String,
+      required: true,
+      trim: true,
     },
     address: {
       type: String,

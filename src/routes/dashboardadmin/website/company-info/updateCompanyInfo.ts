@@ -11,8 +11,8 @@ const router = Router();
 
 /**
  * PUT /api/dashboardadmin/website/company-info/updateCompanyInfo/:id
- * — updates any of the CompanyData fields and replaces “banner”, “logo”, or “contactBanner”
- *   on the single CompanyData doc
+ * — updates any of the CompanyData fields (including `vat`) and replaces
+ *   “banner”, “logo”, or “contactBanner” on the single CompanyData doc
  */
 router.put(
   "/updateCompanyInfo/:id",
@@ -45,6 +45,7 @@ router.put(
         description,
         email,
         phone,
+        vat,            // ← Matricule fiscale
         address,
         city,
         zipcode,
@@ -78,10 +79,17 @@ router.put(
       }
       if (phone !== undefined) {
         if (!phone.trim()) {
-          res.status(400).json({ success: false, message: "Phone must be a number." });
+          res.status(400).json({ success: false, message: "Phone cannot be empty." });
           return;
         }
         updateData.phone = phone.trim();
+      }
+      if (vat !== undefined) { // ← new
+        if (!vat.trim()) {
+          res.status(400).json({ success: false, message: "VAT (Matricule fiscale) cannot be empty." });
+          return;
+        }
+        updateData.vat = vat.trim();
       }
       if (address !== undefined) {
         if (!address.trim()) {

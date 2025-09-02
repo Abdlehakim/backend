@@ -1,5 +1,7 @@
+// backend/src/routes/pdf/invoicePdf.ts
 import { Router, type RequestHandler } from "express";
 import puppeteer, { type Browser } from "puppeteer";
+import fs from "node:fs";
 import { Types } from "mongoose";
 import Order from "@/models/Order";
 import Client, { IClient } from "@/models/Client";
@@ -95,15 +97,58 @@ async function buildClientFromOrder(rawOrder: any): Promise<PdfClient> {
   return block;
 }
 
-/** Launch Chromium in a prod-safe way (uses installed Chrome path) */
+/* --------------------- Chrome executable resolution --------------------- */
+
+function pathExists(p?: string | null) {
+  if (!p) return false;
+  try {
+    return fs.existsSync(p);
+  } catch {
+    return false;
+  }
+}
+
+/** Resolve a working Chrome/Chromium path:
+ *  1) Env vars (PUPPETEER_EXECUTABLE_PATH / CHROMIUM_PATH / GOOGLE_CHROME_BIN)
+ *  2) Common system paths (apt-installed)
+ *  3) Puppeteer-managed cache (requires `puppeteer browsers install chrome`)
+ */
+function resolveExecPath(): string {
+  const envCandidates = [
+    process.env.PUPPETEER_EXECUTABLE_PATH,
+    process.env.CHROMIUM_PATH,
+    process.env.GOOGLE_CHROME_BIN,
+  ].filter(Boolean) as string[];
+  for (const p of envCandidates) if (pathExists(p)) return p;
+
+  const systemCandidates = [
+    "/usr/bin/chromium",
+    "/usr/bin/chromium-browser",
+    "/usr/bin/google-chrome",
+    "/opt/google/chrome/chrome",
+  ];
+  for (const p of systemCandidates) if (pathExists(p)) return p;
+
+  try {
+    const p = puppeteer.executablePath();
+    if (pathExists(p)) return p;
+  } catch {}
+
+  throw new Error(
+    "No Chrome executable found. " +
+      "Either set PUPPETEER_EXECUTABLE_PATH (apt-installed Chromium) " +
+      "or run 'puppeteer browsers install chrome' during build."
+  );
+}
+
+/** Launch Chromium in a prod-safe way using the resolved executable path */
 async function launchBrowser(): Promise<Browser> {
-  const execPath =
-    process.env.PUPPETEER_EXECUTABLE_PATH // system Chromium if you set it
-    || puppeteer.executablePath();        // browser installed via "puppeteer browsers install chrome"
+  const executablePath = resolveExecPath();
+  console.log("[PDF] Using Chrome at:", executablePath);
 
   return puppeteer.launch({
     headless: true,
-    executablePath: execPath,
+    executablePath,
     args: [
       "--no-sandbox",
       "--disable-setuid-sandbox",

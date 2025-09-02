@@ -99,19 +99,15 @@ async function buildClientFromOrder(rawOrder: any): Promise<PdfClient> {
 
 /* --------------------- Chrome executable resolution --------------------- */
 
-function pathExists(p?: string | null) {
+function exists(p?: string | null) {
   if (!p) return false;
-  try {
-    return fs.existsSync(p);
-  } catch {
-    return false;
-  }
+  try { return fs.existsSync(p); } catch { return false; }
 }
 
-/** Resolve a working Chrome/Chromium path:
- *  1) Env vars (PUPPETEER_EXECUTABLE_PATH / CHROMIUM_PATH / GOOGLE_CHROME_BIN)
- *  2) Common system paths (apt-installed)
- *  3) Puppeteer-managed cache (requires `puppeteer browsers install chrome`)
+/** Resolve a working Chrome path:
+ * 1) Env (PUPPETEER_EXECUTABLE_PATH / CHROMIUM_PATH / GOOGLE_CHROME_BIN)
+ * 2) Common system paths (apt installs)
+ * 3) Puppeteer cache (both Render locations) via executablePath()
  */
 function resolveExecPath(): string {
   const envCandidates = [
@@ -119,33 +115,52 @@ function resolveExecPath(): string {
     process.env.CHROMIUM_PATH,
     process.env.GOOGLE_CHROME_BIN,
   ].filter(Boolean) as string[];
-  for (const p of envCandidates) if (pathExists(p)) return p;
+  for (const p of envCandidates) if (exists(p)) return p;
 
   const systemCandidates = [
     "/usr/bin/chromium",
     "/usr/bin/chromium-browser",
     "/usr/bin/google-chrome",
     "/opt/google/chrome/chrome",
+    "/usr/bin/google-chrome-stable",
   ];
-  for (const p of systemCandidates) if (pathExists(p)) return p;
+  for (const p of systemCandidates) if (exists(p)) return p;
 
+  // Puppeteer-managed cache (works if you run: puppeteer browsers install chrome)
   try {
     const p = puppeteer.executablePath();
-    if (pathExists(p)) return p;
+    if (exists(p)) return p;
   } catch {}
 
+  // Some hosts put the cache under /opt/render/project/.cache instead of /opt/render/.cache
+  const guessPaths = [
+    "/opt/render/.cache/puppeteer",
+    "/opt/render/project/.cache/puppeteer",
+  ].flatMap(base => [
+    `${base}/chrome/linux-*/chrome-linux64/chrome`,
+    `${base}/chromium/*/chrome-linux/chrome`,
+  ]);
+  for (const glob of guessPaths) {
+    // VERY light glob: check a few likely candidates
+    const [dir, file] = [glob.replace(/\/[^/]+$/, ""), glob.split("/").pop()!];
+    try {
+      const entries = fs.readdirSync(dir, { withFileTypes: true });
+      for (const e of entries) {
+        const candidate = `${dir}/${e.name}/${file}`;
+        if (exists(candidate)) return candidate;
+      }
+    } catch {}
+  }
+
   throw new Error(
-    "No Chrome executable found. " +
-      "Either set PUPPETEER_EXECUTABLE_PATH (apt-installed Chromium) " +
-      "or run 'puppeteer browsers install chrome' during build."
+    "No Chrome executable found. Install via apt (set PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium) " +
+    "or download at build time (postinstall 'puppeteer browsers install chrome')."
   );
 }
 
-/** Launch Chromium in a prod-safe way using the resolved executable path */
 async function launchBrowser(): Promise<Browser> {
   const executablePath = resolveExecPath();
   console.log("[PDF] Using Chrome at:", executablePath);
-
   return puppeteer.launch({
     headless: true,
     executablePath,

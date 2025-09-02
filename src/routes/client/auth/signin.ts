@@ -8,7 +8,6 @@ import Client from "@/models/Client";
 import { issueClientToken, setClientSessionCookies } from "./sessionClient";
 
 const router = Router();
-const JWT_SECRET = process.env.JWT_SECRET!; // (unused here but kept)
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID!;
 const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
 

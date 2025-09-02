@@ -1,6 +1,5 @@
-// backend/src/routes/pdf/invoicePdf.ts
 import { Router, type RequestHandler } from "express";
-import puppeteer, { type Browser } from "puppeteer"; // <-- Pull Browser type
+import puppeteer, { type Browser } from "puppeteer";
 import { Types } from "mongoose";
 import Order from "@/models/Order";
 import Client, { IClient } from "@/models/Client";
@@ -21,7 +20,6 @@ function acceptsPdf(req: any) {
   return /application\/pdf/i.test(a);
 }
 
-/** Convert a remote image to a data URL (helps Puppeteer always render it). */
 async function toDataUrl(url: string): Promise<string | null> {
   try {
     if (!url) return null;
@@ -36,7 +34,6 @@ async function toDataUrl(url: string): Promise<string | null> {
   }
 }
 
-/** Coerce a raw DB order into the minimal shape the template expects */
 function toOrderDoc(raw: any): OrderDoc {
   return {
     ref: String(raw?.ref ?? ""),
@@ -55,7 +52,6 @@ function toOrderDoc(raw: any): OrderDoc {
   };
 }
 
-/** Resolve a Client doc ID from order.client (ObjectId | populated object | string) */
 function extractClientId(rawClient: any): string | null {
   if (!rawClient) return null;
   if (Types.ObjectId.isValid(rawClient) && String(rawClient) === String(new Types.ObjectId(rawClient))) {
@@ -70,7 +66,6 @@ function extractClientId(rawClient: any): string | null {
   return null;
 }
 
-/** Build the PdfClient block from the order snapshot + live Client doc (if found) */
 async function buildClientFromOrder(rawOrder: any): Promise<PdfClient> {
   const deliveryAddr: string = rawOrder?.DeliveryAddress?.[0]?.DeliverToAddress || "";
   let block: PdfClient = {
@@ -100,16 +95,15 @@ async function buildClientFromOrder(rawOrder: any): Promise<PdfClient> {
   return block;
 }
 
-/** Launch Chromium in a prod-safe way */
+/** Launch Chromium in a prod-safe way (uses installed Chrome path) */
 async function launchBrowser(): Promise<Browser> {
   const execPath =
-    process.env.PUPPETEER_EXECUTABLE_PATH ||
-    process.env.CHROMIUM_PATH || // if you installed system chromium
-    undefined;
+    process.env.PUPPETEER_EXECUTABLE_PATH // system Chromium if you set it
+    || puppeteer.executablePath();        // browser installed via "puppeteer browsers install chrome"
 
   return puppeteer.launch({
-    headless: true, // boolean for widest type compatibility
-    executablePath: execPath, // undefined => bundled Chromium
+    headless: true,
+    executablePath: execPath,
     args: [
       "--no-sandbox",
       "--disable-setuid-sandbox",
@@ -124,28 +118,22 @@ async function launchBrowser(): Promise<Browser> {
 
 const getInvoicePdf: RequestHandler = async (req, res) => {
   const debug = req.query.debug === "1" || !acceptsPdf(req);
-  let browser: Browser | null = null; // <-- use imported Browser type
+  let browser: Browser | null = null;
 
   try {
     const { ref } = req.params as { ref: string };
 
-    // 1) Load order
     const rawOrder = await Order.findOne({ ref }).lean();
     if (!rawOrder) {
       const payload = { error: "Order not found", ref };
-      if (debug) {
-        res.status(404).json(payload);
-      } else {
-        res.status(404).end();
-      }
+      if (debug) res.status(404).json(payload);
+      else res.status(404).end();
       return;
     }
     const order = toOrderDoc(rawOrder);
 
-    // 2) Build client block
     const client: PdfClient = await buildClientFromOrder(rawOrder);
 
-    // 3) Load company data and inline logo (best effort)
     const company = await CompanyData.findOne().lean<ICompanyData | null>();
     let logoSrc = company?.logoImageUrl || "";
     if (logoSrc) {
@@ -153,7 +141,6 @@ const getInvoicePdf: RequestHandler = async (req, res) => {
       if (inline) logoSrc = inline;
     }
 
-    // 4) Template options
     const opts: PdfOptions = {
       currency: "TND",
       docType: "facture",
@@ -179,7 +166,6 @@ const getInvoicePdf: RequestHandler = async (req, res) => {
       client,
     };
 
-    // 5) Render HTML/CSS
     let html: string, css: string;
     try {
       const out = renderInvoiceHtml(order, opts);
@@ -187,15 +173,11 @@ const getInvoicePdf: RequestHandler = async (req, res) => {
       css = out.css;
     } catch (e: any) {
       const payload = { error: "Template render failed", message: e?.message || String(e) };
-      if (debug) {
-        res.status(500).json(payload);
-      } else {
-        res.status(500).end();
-      }
+      if (debug) res.status(500).json(payload);
+      else res.status(500).end();
       return;
     }
 
-    // 6) Generate PDF
     browser = await launchBrowser();
     const page = await browser.newPage();
     await page.setViewport({ width: 1240, height: 1754, deviceScaleFactor: 1 });
@@ -211,7 +193,6 @@ const getInvoicePdf: RequestHandler = async (req, res) => {
     });
     await page.close();
 
-    // 7) Respond
     if (debug) {
       res.status(200).json({
         ok: true,
@@ -248,7 +229,5 @@ const getInvoicePdf: RequestHandler = async (req, res) => {
 };
 
 router.get("/invoice/:ref", getInvoicePdf);
-
-// Export both ways so TS treats this as a module and imports are flexible
 export const invoicePdfRouter = router;
 export default router;

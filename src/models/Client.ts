@@ -1,6 +1,6 @@
 // models/Client.ts
 import mongoose, { Document, Model, Schema } from 'mongoose';
-import bcrypt from 'bcrypt';
+ import bcrypt from "bcryptjs";
 
 // Interface for the Client document
 export interface IClient extends Document {

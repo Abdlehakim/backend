@@ -1,8 +1,8 @@
 # backend/Dockerfile
-# Base image with Chrome for Testing + Puppeteer preinstalled
+# Chrome + Puppeteer preinstalled
 FROM ghcr.io/puppeteer/puppeteer:24.17.1
 
-# Install fonts so Arabic/French/Emoji render correctly in PDFs
+# Fonts for Arabic/French/Emoji in PDFs
 USER root
 RUN apt-get update && apt-get install -y --no-install-recommends \
     fonts-noto-core \
@@ -10,25 +10,23 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     fonts-dejavu-core \
     fonts-noto-color-emoji \
   && rm -rf /var/lib/apt/lists/*
-USER pptruser
-
-# Puppeteer image already ships Chrome; don't re-download it
-ENV PUPPETEER_SKIP_DOWNLOAD=1
 
 WORKDIR /app
 
-# Install deps (cache-friendly)
-COPY package*.json tsconfig.json ./
+# Copy manifest files with correct ownership for the non-root user
+COPY --chown=pptruser:pptruser package*.json tsconfig.json ./
+
+# Install deps as non-root
+USER pptruser
 RUN npm ci
 
-# Copy source and build TypeScript → dist/
-COPY src ./src
-RUN npm run build \
-  && npm prune --omit=dev
+# Copy source with correct ownership, then build
+COPY --chown=pptruser:pptruser src ./src
+RUN npm run build
+
+# Trim dev deps without touching the lockfile
+RUN npm prune --omit=dev --no-audit --no-fund --no-optional --no-save
 
 ENV NODE_ENV=production
-# Expose for local runs (Render sets PORT env automatically)
 EXPOSE 3000
-
-# Start the server (module-alias points "@" → dist in package.json)
 CMD ["node", "-r", "module-alias/register", "dist/app.js"]

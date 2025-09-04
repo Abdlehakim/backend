@@ -7,8 +7,11 @@ import dotenv from "dotenv";
 import cors, { CorsOptions } from "cors";
 import cookieParser from "cookie-parser";
 
-/* 1️⃣  ENV + DB -------------------------------------------------------- */
-dotenv.config(); // load .env → process.env.*
+/* 1️⃣  ENV + DB --------------------------------------------- */
+if (process.env.NODE_ENV !== "production") {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  require("dotenv").config();
+}
 import "./db"; // side-effect: opens Mongo connection
 
 /* ── Cookie flags for both set & clear ───────────────────────────────── */

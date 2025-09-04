@@ -1,11 +1,10 @@
 #!/usr/bin/env bash
-set -e
-echo "[entrypoint] RUN_MODE=${RUN_MODE:-api}"
-
-if [ "$RUN_MODE" = "worker" ]; then
-  echo "[entrypoint] starting invoice worker..."
-  exec node -r module-alias/register dist/src/jobs/invoiceWorker.js
-else
-  echo "[entrypoint] starting api server..."
-  exec node -r module-alias/register dist/app.js
-fi
+set -euo pipefail
+node -r module-alias/register dist/app.js & API_PID=$!
+node -r module-alias/register dist/jobs/invoiceWorker.js & WORKER_PID=$!
+trap "kill -TERM $API_PID $WORKER_PID; wait" TERM INT
+wait -n "$API_PID" "$WORKER_PID"
+EXIT=$?
+kill -TERM "$API_PID" "$WORKER_PID" || true
+wait || true
+exit "$EXIT"

@@ -1,4 +1,4 @@
-/* ----------------------------- Order types ----------------------------- */
+/* ----------------------------src/templates/pdf/invoiceTemplate.ts----------------------------- */
 
 export type OrderItemAttr = {
   attribute: string;
@@ -342,7 +342,7 @@ body.print-mode #pdfRoot {
 }
 
 .pdf-sign{position:absolute;bottom:5mm;right:20mm;text-align:left;font-size:12px}
-.pdf-sign-line{font-size:8px;margin:0;border-top:1px solid #000;width:200px}
+.pdf-sign-line{font-size:8px;margin:2px;border-top:1px solid #000;width:200px}
 
 @page { size:A4; margin:0; }
 .pdf-amount-words{
@@ -661,7 +661,7 @@ export function renderInvoiceHtml(
 
   <div class="pdf-sign">
     <p class="pdf-sign-line">Signature et cachet Fait le : ${esc(dateStr)}</p>
-    <p style="margin-top:4px;font-style:italic;font-size:12px">Merci pour votre confiance&nbsp;!</p>
+    <p style="margin:0px;font-style:italic;font-size:12px">Merci pour votre confiance&nbsp;!</p>
   </div>
 </div>`;
 

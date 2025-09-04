@@ -3,7 +3,6 @@
 ------------------------------------------------------------------ */
 
 import express, { Request, Response, RequestHandler } from "express";
-import dotenv from "dotenv";
 import cors, { CorsOptions } from "cors";
 import cookieParser from "cookie-parser";
 

@@ -1,8 +1,9 @@
 // src/db.ts
 import mongoose from "mongoose";
-import dotenv from "dotenv";
-
-dotenv.config();
+if (process.env.NODE_ENV !== "production") {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  require("dotenv").config();
+}
 
 const mongoURI = process.env.MONGODB_URI;
 

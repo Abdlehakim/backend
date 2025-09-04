@@ -1,5 +1,7 @@
-import dotenv from 'dotenv';
-dotenv.config();
+if (process.env.NODE_ENV !== "production") {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  require("dotenv").config();
+}
 
 console.log('MONGODB_URI:', process.env.MONGODB_URI);  // Debugging line
 

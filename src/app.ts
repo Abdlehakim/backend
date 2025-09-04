@@ -154,6 +154,9 @@ import submitOrder from "./routes/dashboardadmin/orders/submitOrder";
 import updateOrder from "./routes/dashboardadmin/orders/updateOrder";
 import updateOrderStatus from "./routes/dashboardadmin/orders/updateOrderStatus";
 
+/* ---------- Dashboard Clients & factures ---------- */
+import getAllfactures from "@/routes/dashboardadmin/factures/getAllfactures";
+import updateFactureStatus from "@/routes/dashboardadmin/factures/updateStatus";
 /* ---------- Dashboard Clients shops ---------- */
 import getAllClientShop from "./routes/dashboardadmin/client-shop/getAllClientShop";
 import createClientShop from "./routes/dashboardadmin/client-shop/createClientShop";
@@ -367,6 +370,9 @@ app.use("/api/dashboardadmin/orders", submitOrder);
 app.use("/api/dashboardadmin/orders", updateOrder);
 app.use("/api/dashboardadmin/orders", updateOrderStatus);
 
+/* factures */
+app.use("/api/dashboardadmin/factures", getAllfactures);
+app.use("/api/dashboardadmin/factures", updateFactureStatus);
 /* delivery options */
 app.use("/api/dashboardadmin/delivery-options", createDeliveryOption);
 app.use("/api/dashboardadmin/delivery-options", getAllDeliveryOptions);

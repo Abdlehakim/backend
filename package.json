@@ -7,18 +7,26 @@
     "@": "dist"
   },
   "scripts": {
-    "dev": "nodemon --watch 'src/**/*.ts' --exec \"ts-node -r tsconfig-paths/register src/app.ts\"",
+    "dev": "nodemon --watch 'src/**/*.ts' --exec \"node --env-file=.env.local -r ts-node/register -r tsconfig-paths/register src/app.ts\"",
+    "dev:worker": "nodemon --watch 'src/**/*.ts' --exec \"node --env-file=.env.local -r ts-node/register -r tsconfig-paths/register src/jobs/invoiceWorker.ts\"",
+
     "build": "tsc",
-    "start": "node -r module-alias/register dist/app.js"
+
+    "start": "node -r module-alias/register dist/app.js",
+    "start:api": "node -r module-alias/register dist/app.js",
+    "start:worker": "node -r module-alias/register dist/jobs/invoiceWorker.js",
+
+    "worker:invoice": "node -r module-alias/register dist/jobs/invoiceWorker.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
+    "bullmq": "^5.58.5",
     "cloudinary": "^2.5.1",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
-    "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "google-auth-library": "^9.15.1",
+    "ioredis": "^5.7.0",
     "jose": "^6.0.10",
     "jsonwebtoken": "^9.0.2",
     "module-alias": "^2.2.3",
@@ -38,6 +46,9 @@
     "@types/multer": "^2.0.0",
     "@types/node": "^22.13.1",
     "@types/nodemailer": "^6.4.17",
+    "concurrently": "^9.2.1",
+    "cross-env": "^10.0.0",
+    "dotenv": "^17.2.2",
     "nodemon": "^3.1.9",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",

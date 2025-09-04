@@ -11,20 +11,26 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN install -d -o pptruser -g pptruser /home/pptruser/app
 WORKDIR /home/pptruser/app
 
-# Copy manifests with correct ownership (so npm can write lock/node_modules)
+# Copy manifests with correct ownership
 COPY --chown=pptruser:pptruser package*.json tsconfig.json ./
 
 # Switch to non-root user before installing
 USER pptruser
 RUN npm ci
 
-# Copy source with correct ownership and build
+# Copy source and build
 COPY --chown=pptruser:pptruser src ./src
 RUN npm run build
 
-# Trim dev deps without touching the lockfile (prevents lockfile writes)
+# Trim dev deps
 RUN npm prune --omit=dev --no-audit --no-fund --no-optional --no-save
+
+# Copy entrypoint
+COPY --chown=pptruser:pptruser entrypoint.sh ./entrypoint.sh
+RUN chmod +x ./entrypoint.sh
 
 ENV NODE_ENV=production
 EXPOSE 3000
-CMD ["node","-r","module-alias/register","dist/app.js"]
+
+# Decide at runtime whether this container is API or Worker
+CMD ["./entrypoint.sh"]

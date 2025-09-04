@@ -1,4 +1,4 @@
-///api/dashboardadmin/orders/getAllOrders.ts
+///src/routes/dashboardadmin/orders/getAllOrders.ts
 
 
 
@@ -10,7 +10,6 @@ const router = express.Router();
 
 /**
  * GET /api/dashboardadmin/orders
- * Returns all orders with populated client and address.
  */
 
 router.get(

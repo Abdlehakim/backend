@@ -12,13 +12,13 @@ interface IFactureItemAttribute {
 }
 
 interface IFactureItem {
-  product: mongoose.Types.ObjectId;      // snapshot ref
-  reference: string;                     // product reference at time of sale
-  name: string;                          // product name at time of sale
-  tva: number;                           // % (e.g., 19)
+  product: mongoose.Types.ObjectId;      
+  reference: string;                     
+  name: string;                          
+  tva: number;                           
   quantity: number;
-  discount: number;                      // per-unit discount already applied
-  price: number;                         // unit price HT at time of sale
+  discount: number;                      
+  price: number;                         
   attributes?: IFactureItemAttribute[];
 }
 
@@ -210,8 +210,8 @@ const FactureSchema = new Schema<IFacture>(
 );
 
 /* helpful unique constraints & indexes */
-FactureSchema.index({ year: 1, seq: 1 }, { unique: true }); // year-scoped numbering
-FactureSchema.index({ order: 1 }, { unique: true });        // one invoice per order
+FactureSchema.index({ year: 1, seq: 1 }, { unique: true });
+FactureSchema.index({ order: 1 }, { unique: true });   
 
 /* ---------- numbering hook (atomic & year-scoped) ---------- */
 FactureSchema.pre<IFacture>("validate", async function (next) {

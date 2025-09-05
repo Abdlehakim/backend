@@ -1,8 +1,16 @@
-// backend/src/routes/pdf/invoicePdf.ts
+/* ------------------------------------------------------------------
+   src/routes/pdf/invoicePdf.ts
+   Accepts either:
+     - ORDER ref (e.g., ORDER-1234)
+     - FACTURE ref (e.g., FC-1-2025)  ✅ keep as-is in header & filename
+   Optional: ?doc=bl renders as delivery note style (filename BL-xxxx.pdf)
+------------------------------------------------------------------ */
 import { Router, type RequestHandler } from "express";
 import puppeteer, { type Browser } from "puppeteer";
 import { Types } from "mongoose";
+
 import Order from "@/models/Order";
+import Facture from "@/models/Facture";
 import Client, { IClient } from "@/models/Client";
 import CompanyData, { ICompanyData } from "@/models/websitedata/companyData";
 import {
@@ -97,12 +105,9 @@ async function buildClientFromOrder(rawOrder: any): Promise<PdfClient> {
 }
 
 /* --------------------- launch Chrome via Puppeteer image --------------------- */
-/** In Docker (ghcr.io/puppeteer/puppeteer), Chrome is already installed.
- *  No executablePath or path resolution needed.
- */
 async function launchBrowser(): Promise<Browser> {
   return puppeteer.launch({
-    headless: true, // or "new"
+    headless: true,
     args: [
       "--no-sandbox",
       "--disable-setuid-sandbox",
@@ -117,20 +122,68 @@ async function launchBrowser(): Promise<Browser> {
 
 const getInvoicePdf: RequestHandler = async (req, res) => {
   const debug = req.query.debug === "1" || !acceptsPdf(req);
+  // Optional support for BL (delivery note) — affects label & filename
+  const docTypeParam = (req.query.doc === "bl" ? "bl" : "facture") as unknown as PdfOptions["docType"];
+
   let browser: Browser | null = null;
 
   try {
-    const { ref } = req.params as { ref: string };
+    const { ref: refParam } = req.params as { ref: string };
+    const isFactureRef = /^FC-/i.test(refParam);
 
-    const rawOrder = await Order.findOne({ ref }).lean();
-    if (!rawOrder) {
-      const payload = { error: "Order not found", ref };
-      if (debug) res.status(404).json(payload);
-      else res.status(404).end();
-      return;
+    // Resolved depending on ref type.
+    let rawOrder: any | null = null;
+    let displayRef = "";     // what we print in header & use for filename
+    let dateForDoc: Date = new Date();
+    let statusLabel: string | undefined; // "Annulée" if facture is cancelled
+
+    if (isFactureRef) {
+      // Fetch facture by ref (e.g., FC-1-2025)
+      const fc = await Facture.findOne({ ref: refParam }).lean();
+      if (!fc) {
+        const payload = { error: "Facture not found", ref: refParam };
+        if (debug) res.status(404).json(payload);
+        else res.status(404).end();
+        return;
+      }
+
+      // Resolve the order via orderRef (preferred), then fallback to order ObjectId
+      if (fc.orderRef) {
+        rawOrder = await Order.findOne({ ref: fc.orderRef }).lean();
+      }
+      if (!rawOrder && fc.order) {
+        rawOrder = await Order.findById(fc.order).lean();
+      }
+      if (!rawOrder) {
+        const payload = { error: "Order for facture not found", ref: refParam, orderRef: fc.orderRef };
+        if (debug) res.status(404).json(payload);
+        else res.status(404).end();
+        return;
+      }
+
+      // Keep FC-… exactly for the printed number and the filename
+      displayRef = String(fc.ref);
+      dateForDoc = fc.issuedAt ? new Date(fc.issuedAt) : new Date(rawOrder.createdAt || Date.now());
+
+      // Show badge "Annulée" when facture is cancelled
+      if (fc.status === "Cancelled") statusLabel = "Annulée";
+    } else {
+      // Treat as Order ref (e.g., ORDER-xxxx)
+      rawOrder = await Order.findOne({ ref: refParam }).lean();
+      if (!rawOrder) {
+        const payload = { error: "Order not found", ref: refParam };
+        if (debug) res.status(404).json(payload);
+        else res.status(404).end();
+        return;
+      }
+
+      // For orders we keep previous behaviour: strip ORDER- in display
+      displayRef = String(rawOrder.ref || "").replace(/^ORDER-/i, "");
+      dateForDoc = new Date(rawOrder.createdAt || Date.now());
+      // No status badge for orders
     }
-    const order = toOrderDoc(rawOrder);
 
+    const order = toOrderDoc(rawOrder);
     const client: PdfClient = await buildClientFromOrder(rawOrder);
 
     const company = await CompanyData.findOne().lean<ICompanyData | null>();
@@ -142,9 +195,9 @@ const getInvoicePdf: RequestHandler = async (req, res) => {
 
     const opts: PdfOptions = {
       currency: "TND",
-      docType: "facture",
-      number: String(order.ref || "").replace(/^ORDER-/, ""),
-      date: new Date(order.createdAt as any).toLocaleDateString("fr-FR", {
+      docType: docTypeParam, // "facture" or "bl"
+      number: displayRef,    // header shows FC-… for factures
+      date: dateForDoc.toLocaleDateString("fr-FR", {
         day: "2-digit",
         month: "2-digit",
         year: "numeric",
@@ -163,6 +216,7 @@ const getInvoicePdf: RequestHandler = async (req, res) => {
           }
         : undefined,
       client,
+      statusLabel,           // "Annulée" badge at top-left if set
     };
 
     let html: string, css: string;
@@ -196,13 +250,14 @@ const getInvoicePdf: RequestHandler = async (req, res) => {
       res.status(200).json({
         ok: true,
         bytes: pdf.length,
-        ref,
+        ref: refParam,
         note: "Remove ?debug=1 or set Accept: application/pdf to download the file.",
       });
       return;
     }
 
-    const filename = `FACTURE-${opts.number || "invoice"}.pdf`;
+    const base = docTypeParam === "bl" ? "BL" : "FACTURE";
+    const filename = `${base}-${displayRef || "document"}.pdf`;
     res
       .status(200)
       .setHeader("Content-Type", "application/pdf")

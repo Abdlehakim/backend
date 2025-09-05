@@ -93,6 +93,8 @@ export interface PdfOptions {
   notes?: string;
   hiddenColumns?: HiddenColumns;
   pricesAreTTC?: boolean;     // if true, price in items is TTC and we convert to HT; default true
+  /** If set, renders a badge at top-left (e.g., "Annulée") */
+  statusLabel?: string;
 }
 
 /* ------------------------------ Utilities ------------------------------ */
@@ -265,6 +267,23 @@ body.print-mode #pdfRoot {
 }
 .pdf-bottom{font-size:10px}
 
+/* Status badge (top-left) */
+.pdf-status-badge{
+  position:absolute;
+  top:6mm;
+  left:8mm;
+  z-index:5;
+  padding:6px 10px;
+  border:2px solid #b91c1c;
+  color:#b91c1c;
+  background:rgba(254,226,226,.92);
+  font-weight:700;
+  font-size:12px;
+  border-radius:6px;
+  letter-spacing:.04em;
+  text-transform:uppercase;
+}
+
 /* Tight vertical stack with no margin-collapsing or gaps */
 .stack{
   display:flex;
@@ -325,11 +344,10 @@ body.print-mode #pdfRoot {
 .pdf-mini-table .grand th{ background:#15335e; font-size:10px; font-weight:600; color:#fff; }
 .pdf-mini-table .right{ text-align:center; }
 
-/* Footer company block (bottom-left) */
 .pdf-company-footer{
   position:absolute;
   left:15mm;
-  bottom:8mm;
+  bottom:5mm;
   max-width:40%;
   font-size:12px;
   line-height:1.25;
@@ -342,7 +360,7 @@ body.print-mode #pdfRoot {
 }
 
 .pdf-sign{position:absolute;bottom:5mm;right:20mm;text-align:left;font-size:12px}
-.pdf-sign-line{font-size:8px;margin:2px;border-top:1px solid #000;width:200px}
+.pdf-sign-line{font-size:8px;margin:0px;border-top:1px solid #000;width:200px}
 
 @page { size:A4; margin:0; }
 .pdf-amount-words{
@@ -350,7 +368,7 @@ body.print-mode #pdfRoot {
   display: flex;
   flex-direction: column;
   left: 15mm;
-  top: 250mm;
+  top: 240mm;
   max-width: 45%;
   font-size: 12px;
   line-height: 1.25;
@@ -361,7 +379,7 @@ body.print-mode #pdfRoot {
   border-radius: 5px;
   padding: 14px 16px 16px;
   background: #fff;
-  margin: 0; /* remove default fieldset margins */
+  margin: 0;
 }
 .section-box > legend {
   font-weight: 700;
@@ -612,8 +630,14 @@ export function renderInvoiceHtml(
        </div>`
     : "";
 
+  // Optional status badge
+  const statusBadgeHtml = options.statusLabel
+    ? `<div class="pdf-status-badge">${esc(options.statusLabel)}</div>`
+    : "";
+
   const html = `
 <div class="pdf-page">
+  ${statusBadgeHtml}
   <div class="pdf-head">
     <h1 class="pdf-title">${DOC_LABEL} N° : <span style="font-weight:600">${esc(number || "—")}</span></h1>
     <div class="pdf-logo-wrap">
@@ -667,4 +691,3 @@ export function renderInvoiceHtml(
 
   return { html, css: PDF_CSS };
 }
-

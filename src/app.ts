@@ -151,6 +151,7 @@ import getAllClient from "./routes/dashboardadmin/client/getAllClient";
 import findClient from "./routes/dashboardadmin/client/findClient";
 import deleteClient from "./routes/dashboardadmin/client/deleteClient";
 import getAllOrders from "./routes/dashboardadmin/orders/getAllOrders";
+import getOne from "./routes/dashboardadmin/orders/getOne";
 import getOrderById from "./routes/dashboardadmin/orders/getOrderById";
 import submitOrder from "./routes/dashboardadmin/orders/submitOrder";
 import updateOrder from "./routes/dashboardadmin/orders/updateOrder";
@@ -160,6 +161,9 @@ import updateOrderStatus from "./routes/dashboardadmin/orders/updateOrderStatus"
 import getAllfactures from "@/routes/dashboardadmin/factures/getAllfactures";
 import updateFactureStatus from "@/routes/dashboardadmin/factures/updateStatus";
 import getFcById from "@/routes/dashboardadmin/factures/getFcById";
+import createFacture from "@/routes/dashboardadmin/factures/createFacture";
+import createFcFromOrder from "@/routes/dashboardadmin/factures/createFcFromOrder";
+
 
 
 /* ---------- Dashboard Clients shops ---------- */
@@ -370,6 +374,7 @@ app.use("/api/dashboardadmin/clientAddress", PostAddress);
 
 /* orders */
 app.use("/api/dashboardadmin/orders", getAllOrders);
+app.use("/api/dashboardadmin/orders", getOne);
 app.use("/api/dashboardadmin/orders", getOrderById);
 app.use("/api/dashboardadmin/orders", submitOrder);
 app.use("/api/dashboardadmin/orders", updateOrder);
@@ -379,6 +384,8 @@ app.use("/api/dashboardadmin/orders", updateOrderStatus);
 app.use("/api/dashboardadmin/factures", getAllfactures);
 app.use("/api/dashboardadmin/factures", updateFactureStatus);
 app.use("/api/dashboardadmin/factures", getFcById);
+app.use("/api/dashboardadmin/factures", createFacture);
+app.use("/api/dashboardadmin/factures", createFcFromOrder);
 
 
 /* delivery options */

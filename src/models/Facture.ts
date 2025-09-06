@@ -1,62 +1,63 @@
 /* ------------------------------------------------------------------
    models/Facture.ts
 ------------------------------------------------------------------ */
-import mongoose, { Schema, Document, Model } from "mongoose";
+import mongoose, { Schema, Document, Model, Types } from "mongoose";
+import Order from "@/models/Order";
 
 /* ---------- interfaces ---------- */
 
-interface IFactureItemAttribute {
-  attribute: mongoose.Types.ObjectId;
+export interface IFactureItemAttribute {
+  attribute: Types.ObjectId;
   name: string;
   value: string;
 }
 
-interface IFactureItem {
-  product: mongoose.Types.ObjectId;      
-  reference: string;                     
-  name: string;                          
-  tva: number;                           
+export interface IFactureItem {
+  product: Types.ObjectId;
+  reference: string;
+  name: string;
+  tva: number;
   quantity: number;
-  discount: number;                      
-  price: number;                         
+  discount: number;
+  price: number;
   attributes?: IFactureItemAttribute[];
 }
 
-interface IFacturePaymentMethod {
-  PaymentMethodID: mongoose.Types.ObjectId;
+export interface IFacturePaymentMethod {
+  PaymentMethodID: Types.ObjectId;
   PaymentMethodLabel: string;
 }
 
-interface IFactureDeliveryMethod {
-  deliveryMethodID: mongoose.Types.ObjectId;
+export interface IFactureDeliveryMethod {
+  deliveryMethodID: Types.ObjectId;
   deliveryMethodName?: string;
-  Cost: string;                          // keep string for parity with Order
+  Cost: string; // parity with Order
   expectedDeliveryDate?: Date;
 }
 
-interface IFactureDeliveryAddress {
-  AddressID: mongoose.Types.ObjectId;
+export interface IFactureDeliveryAddress {
+  AddressID: Types.ObjectId;
   DeliverToAddress: string;
 }
 
-interface IFacturePickupMagasin {
-  MagasinID: mongoose.Types.ObjectId;
+export interface IFacturePickupMagasin {
+  MagasinID: Types.ObjectId;
   MagasinName?: string;
   MagasinAddress: string;
 }
 
 export interface IFacture extends Document {
   /* numbering */
-  ref: string;        // e.g., FC-1-2025
-  seq: number;        // 1, 2, 3 ... (per year)
-  year: number;       // 2025
+  ref: string;  // e.g., FC-1-2025
+  seq: number;  // 1,2,3... (per year)
+  year: number; // 2025
 
   /* linkage */
-  order: mongoose.Types.ObjectId; // reference to Order
-  orderRef?: string;              // snapshot of order.ref
+  order: Types.ObjectId; // -> Order
+  orderRef?: string;     // snapshot of order.ref
 
   /* client snapshot */
-  client: mongoose.Types.ObjectId;
+  client: Types.ObjectId;
   clientName: string;
 
   /* selections (snapshots) */
@@ -69,15 +70,15 @@ export interface IFacture extends Document {
   items: IFactureItem[];
 
   /* totals */
-  currency: "TND" | "EUR" | "USD" | string; // default TND
-  subtotalHT: number;        // sum(qty * (price-discount)) before TVA
-  tvaTotal: number;          // total TVA amount
-  shippingCost: number;      // parsed numeric cost for accounting
-  grandTotalTTC: number;     // subtotalHT + tvaTotal + shippingCost
+  currency: "TND" | "EUR" | "USD" | string;
+  subtotalHT: number;
+  tvaTotal: number;
+  shippingCost: number;
+  grandTotalTTC: number;
 
   /* status lifecycle */
   status: "Paid" | "Cancelled";
-  issuedAt: Date;            // when facture was created
+  issuedAt: Date;
   paidAt?: Date;
   cancelledAt?: Date;
 
@@ -100,7 +101,6 @@ const FactureCounterSchema = new Schema<IFactureCounter>(
   { collection: "facture_counters" }
 );
 
-// Not exported; internal helper model
 const FactureCounter: Model<IFactureCounter> =
   mongoose.models.FactureCounter ||
   mongoose.model<IFactureCounter>("FactureCounter", FactureCounterSchema);
@@ -211,7 +211,7 @@ const FactureSchema = new Schema<IFacture>(
 
 /* helpful unique constraints & indexes */
 FactureSchema.index({ year: 1, seq: 1 }, { unique: true });
-FactureSchema.index({ order: 1 }, { unique: true });   
+FactureSchema.index({ order: 1 }, { unique: true });
 
 /* ---------- numbering hook (atomic & year-scoped) ---------- */
 FactureSchema.pre<IFacture>("validate", async function (next) {
@@ -221,7 +221,6 @@ FactureSchema.pre<IFacture>("validate", async function (next) {
     const now = this.issuedAt ?? new Date();
     const year = now.getFullYear();
 
-    // Atomically increment per-year sequence
     const counter = await FactureCounter.findOneAndUpdate(
       { year },
       { $inc: { seq: 1 } },
@@ -232,9 +231,51 @@ FactureSchema.pre<IFacture>("validate", async function (next) {
     this.year = year;
     this.seq = seq;
     this.ref = `FC-${seq}-${year}`;
-    return next();
+    next();
   } catch (err) {
-    return next(err as Error);
+    next(err as Error);
+  }
+});
+
+/* ---------- mark Order.Invoice = true after create ---------- */
+FactureSchema.post("save", async function (doc) {
+  try {
+    await Order.updateOne({ _id: doc.order }, { $set: { Invoice: true } }).exec();
+  } catch (err) {
+    console.error("[Facture post-save] Failed to set Order.Invoice=true:", err);
+  }
+});
+
+/* for bulk creates */
+FactureSchema.post("insertMany", async function (docs: IFacture[]) {
+  try {
+    const ids = Array.from(new Set(docs.map((d) => String(d.order)))).map(
+      (s) => new mongoose.Types.ObjectId(s)
+    );
+    if (ids.length) {
+      await Order.updateMany({ _id: { $in: ids } }, { $set: { Invoice: true } }).exec();
+    }
+  } catch (err) {
+    console.error("[Facture post-insertMany] Failed to set Order.Invoice=true:", err);
+  }
+});
+
+/* ---------- OPTIONAL: flip Order.Invoice=false on delete ---------- */
+/* Remove these if you never want to unset the flag on deletion. */
+FactureSchema.post("findOneAndDelete", async function (doc: IFacture | null) {
+  if (!doc) return;
+  try {
+    await Order.updateOne({ _id: doc.order }, { $set: { Invoice: false } }).exec();
+  } catch (err) {
+    console.error("[Facture post-findOneAndDelete] Failed to unset Order.Invoice:", err);
+  }
+});
+
+FactureSchema.post("deleteOne", { document: true, query: false }, async function (doc) {
+  try {
+    await Order.updateOne({ _id: this.get("order") }, { $set: { Invoice: false } }).exec();
+  } catch (err) {
+    console.error("[Facture post-deleteOne] Failed to unset Order.Invoice:", err);
   }
 });
 

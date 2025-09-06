@@ -30,11 +30,11 @@ router.post(
       const orderDoc = new Order({
         client,
         clientName,
-        DeliveryAddress: deliveryArray,          // [{ AddressID, DeliverToAddress }]
-        pickupMagasin: pickupArray,              // [{ MagasinID, MagasinName, MagasinAddress }]
-        orderItems,                              // as provided
-        paymentMethod: paymentArray,             // [{ PaymentMethodID, PaymentMethodLabel }]
-        deliveryMethod: deliveryMethodArray,     // [{ deliveryMethodID, deliveryMethodName, Cost, expectedDeliveryDate? }]
+        DeliveryAddress: deliveryArray,         
+        pickupMagasin: pickupArray,             
+        orderItems,                              
+        paymentMethod: paymentArray,            
+        deliveryMethod: deliveryMethodArray,    
       });
 
       const saved = await orderDoc.save();

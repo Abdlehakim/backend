@@ -1,8 +1,11 @@
+// src/jobs/invoiceWorker.ts  (your file shown in chat)
 import { Worker, QueueEvents } from "bullmq";
 import mongoose from "mongoose";
 import { INVOICE_QUEUE } from "@/jobs/invoiceQueue";
 import { redis as connection } from "@/jobs/redis";
 import { createFactureFromOrder } from "@/services/factureService";
+// ⬇️ NEW
+import Order from "@/models/Order";
 
 async function connectDB() {
   if (mongoose.connection.readyState === 1) return;
@@ -19,9 +22,21 @@ export const invoiceWorker = new Worker(
     const { orderId, eta, scheduledAt } = job.data as {
       orderId: string; eta?: string; scheduledAt?: number;
     };
-    job.log(`ACTIVE order=${orderId} scheduledAt=${scheduledAt ? new Date(scheduledAt).toISOString() : "n/a"} ETA=${eta ?? "n/a"}`);
+    job.log(
+      `ACTIVE order=${orderId} scheduledAt=${scheduledAt ? new Date(scheduledAt).toISOString() : "n/a"} ETA=${eta ?? "n/a"}`
+    );
 
     const result = await createFactureFromOrder(orderId);
+
+    // ⬇️ NEW: mark the order as invoiced on success or when it already existed
+    if ((result.ok && result.ref) || result.already) {
+      try {
+        await Order.updateOne({ _id: orderId }, { $set: { Invoice: true } }).exec();
+        job.log(`[invoiceWorker] set Invoice=true for order=${orderId}`);
+      } catch (e) {
+        job.log(`[invoiceWorker] WARN could not set Invoice=true for order=${orderId}: ${(e as Error).message}`);
+      }
+    }
 
     if (result.ok && result.ref) return { ref: result.ref };
     if (result.already) return { already: true, ref: result.ref };

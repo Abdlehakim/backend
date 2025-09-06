@@ -1,75 +1,82 @@
 /* ------------------------------------------------------------------
    models/Order.ts
 ------------------------------------------------------------------ */
-import mongoose, { Schema, Document, Model } from "mongoose";
+import mongoose, { Schema, Document, Model, Types } from "mongoose";
 import crypto from "crypto";
 import { IClient } from "./Client";
 import { IClientShop } from "./ClientShop";
 import { IClientCompany } from "./ClientCompany";
 
-/* ---------- interfaces ---------- */
+/* ---------- status union ---------- */
+export type OrderStatus =
+  | "Processing"
+  | "Shipped"
+  | "Delivered"
+  | "Cancelled"
+  | "Refunded"
+  | "Pickup";
 
-interface IOrderItemAttribute {
-  attribute: mongoose.Types.ObjectId;
+/* ---------- sub-doc interfaces ---------- */
+export interface IOrderItemAttribute {
+  attribute: Types.ObjectId;
   name: string;
   value: string;
 }
+export interface IOrderItem {
+  product: Types.ObjectId;
+  reference: string;
+  name: string;
+  tva: number;
+  quantity: number;
+  mainImageUrl?: string;
+  discount: number;
+  price: number;
+  attributes?: IOrderItemAttribute[];
+}
+export interface IDeliveryAddress {
+  AddressID: Types.ObjectId;
+  DeliverToAddress: string;
+}
+export interface IPickupMagasin {
+  MagasinID: Types.ObjectId;
+  MagasinName: string;
+  MagasinAddress: string;
+}
+export interface IPaymentMethod {
+  PaymentMethodID: Types.ObjectId;
+  PaymentMethodLabel: string;
+}
+export interface IDeliveryMethod {
+  deliveryMethodID: Types.ObjectId;
+  deliveryMethodName: string;
+  Cost: string;
+  expectedDeliveryDate?: Date;
+}
 
+/* ---------- main doc interface ---------- */
 export interface IOrder extends Document {
   ref?: string;
 
-  /* client (generic ObjectId, no fixed ref) */
-  client: mongoose.Types.ObjectId | IClient | IClientShop | IClientCompany;
+  client: Types.ObjectId | IClient | IClientShop | IClientCompany;
   clientName: string;
 
-  /* delivery address list */
-  DeliveryAddress: Array<{
-    AddressID: mongoose.Types.ObjectId;
-    DeliverToAddress: string;
-  }>;
+  DeliveryAddress: IDeliveryAddress[];
+  pickupMagasin: IPickupMagasin[];
+  paymentMethod: IPaymentMethod[];
+  orderItems: IOrderItem[];
+  deliveryMethod: IDeliveryMethod[];
 
-  /* pickup magasins list */
-  pickupMagasin: Array<{
-    MagasinID: mongoose.Types.ObjectId;
-    MagasinName?: string;
-    MagasinAddress: string;
-  }>;
+  orderStatus: OrderStatus;
 
-  /* payment methods list */
-  paymentMethod: Array<{
-    PaymentMethodID: mongoose.Types.ObjectId;
-    PaymentMethodLabel: string;
-  }>;
+  /** TRUE once a facture has been created for this order */
+  Invoice: boolean;
 
-  /* order items */
-  orderItems: Array<{
-    product: mongoose.Types.ObjectId;
-    reference: string;
-    name: string;
-    tva: number;
-    quantity: number;
-    mainImageUrl?: string;
-    discount: number;
-    price: number;
-    attributes?: IOrderItemAttribute[];
-  }>;
-
-  /* delivery method (array) */
-  deliveryMethod: Array<{
-    deliveryMethodID: mongoose.Types.ObjectId;
-    deliveryMethodName?: string;
-    Cost: string;
-    expectedDeliveryDate?: Date;
-  }>;
-
-  /* misc meta */
-  orderStatus?: string;
   createdAt?: Date;
   updatedAt?: Date;
 }
 
-/* DeliveryAddress sub-schema */
-const DeliveryAddressSchema = new Schema(
+/* ---------- sub-schemas ---------- */
+const DeliveryAddressSchema = new Schema<IDeliveryAddress>(
   {
     AddressID: { type: Schema.Types.ObjectId, ref: "Address", required: true },
     DeliverToAddress: { type: String, trim: true, required: true },
@@ -77,8 +84,7 @@ const DeliveryAddressSchema = new Schema(
   { _id: false }
 );
 
-/* PickupMagasin sub-schema */
-const PickupMagasinSchema = new Schema(
+const PickupMagasinSchema = new Schema<IPickupMagasin>(
   {
     MagasinID: { type: Schema.Types.ObjectId, ref: "Magasin", required: true },
     MagasinAddress: { type: String, trim: true, required: true },
@@ -87,8 +93,7 @@ const PickupMagasinSchema = new Schema(
   { _id: false }
 );
 
-/* PaymentMethod sub-schema */
-const PaymentMethodSchema = new Schema(
+const PaymentMethodSchema = new Schema<IPaymentMethod>(
   {
     PaymentMethodID: {
       type: Schema.Types.ObjectId,
@@ -100,92 +105,77 @@ const PaymentMethodSchema = new Schema(
   { _id: false }
 );
 
-/* DeliveryMethod sub-schema (NEW) */
-const DeliveryMethodSchema = new Schema(
+const OrderItemAttributeSchema = new Schema<IOrderItemAttribute>(
+  {
+    attribute: { type: Schema.Types.ObjectId, ref: "Attribute", required: true },
+    name: { type: String, trim: true, required: true },
+    value: { type: String, trim: true, required: true },
+  },
+  { _id: false }
+);
+
+const OrderItemSchema = new Schema<IOrderItem>(
+  {
+    product: { type: Schema.Types.ObjectId, ref: "Product", required: true },
+    reference: { type: String, trim: true, required: true },
+    name: { type: String, trim: true, required: true },
+    tva: { type: Number, default: 0, min: 0 },
+    quantity: { type: Number, required: true, min: 1 },
+    mainImageUrl: { type: String, default: "" },
+    discount: { type: Number, default: 0, min: 0 },
+    price: { type: Number, required: true, min: 0 },
+    attributes: { type: [OrderItemAttributeSchema], default: [] },
+  },
+  { _id: false }
+);
+
+const DeliveryMethodSchema = new Schema<IDeliveryMethod>(
   {
     deliveryMethodID: {
       type: Schema.Types.ObjectId,
       ref: "DeliveryOption",
       required: true,
     },
-    deliveryMethodName: { type: String, trim: true , required: true },
+    deliveryMethodName: { type: String, trim: true, required: true },
     Cost: { type: String, trim: true, required: true },
     expectedDeliveryDate: { type: Date },
   },
   { _id: false }
 );
 
-/* ---------- main Order schema ---------- */
+/* ---------- main schema ---------- */
 const OrderSchema = new Schema<IOrder>(
   {
-    /* client */
     client: { type: Schema.Types.ObjectId, required: true },
     clientName: { type: String, required: true, trim: true },
 
     ref: { type: String },
 
-    /* addresses & pickup points */
-    DeliveryAddress: {
-      type: [DeliveryAddressSchema],
-      default: [],
-    },
-    pickupMagasin: {
-      type: [PickupMagasinSchema],
-      default: [],
-    },
+    DeliveryAddress: { type: [DeliveryAddressSchema], default: [] },
+    pickupMagasin: { type: [PickupMagasinSchema], default: [] },
+    paymentMethod: { type: [PaymentMethodSchema], default: [] },
+    orderItems: { type: [OrderItemSchema], required: true, default: [] },
+    deliveryMethod: { type: [DeliveryMethodSchema], default: [] },
 
-    /* payment methods (array) */
-    paymentMethod: {
-      type: [PaymentMethodSchema],
-      default: [],
+    orderStatus: {
+      type: String,
+      enum: ["Processing", "Shipped", "Delivered", "Cancelled", "Refunded", "Pickup"],
+      default: "Processing",
     },
 
-    /* items */
-    orderItems: [
-      {
-        product: {
-          type: Schema.Types.ObjectId,
-          ref: "Product",
-          required: true,
-        },
-        reference: { type: String, required: true, trim: true },
-        name: { type: String, required: true, trim: true },
-        tva: { type: Number, default: 0, min: 0 },
-        quantity: { type: Number, required: true, min: 1 },
-        mainImageUrl: { type: String, default: "" },
-        discount: { type: Number, default: 0, min: 0 },
-        price: { type: Number, required: true, min: 0 },
-        attributes: [
-          {
-            attribute: {
-              type: Schema.Types.ObjectId,
-              ref: "Attribute",
-              required: true,
-            },
-            name: { type: String, required: true, trim: true },
-            value: { type: String, required: true, trim: true },
-          },
-        ],
-      },
-    ],
-
-    /* delivery method (array) */
-    deliveryMethod: {
-      type: [DeliveryMethodSchema],
-      default: [],
-    },
-
-    /* meta */
-    orderStatus: { type: String, default: "Processing" },
+    // NEW: persisted flag for invoice existence
+    Invoice: { type: Boolean, default: false, index: true },
   },
   { timestamps: true }
 );
 
+/* ---------- indexes ---------- */
+OrderSchema.index({ createdAt: -1 });
+OrderSchema.index({ ref: 1 });
+
 /* ---------- hooks ---------- */
 OrderSchema.pre<IOrder>("save", function (next) {
-  if (!this.ref) {
-    this.ref = `ORDER-${crypto.randomBytes(4).toString("hex")}`;
-  }
+  if (!this.ref) this.ref = `ORDER-${crypto.randomBytes(4).toString("hex")}`;
   next();
 });
 

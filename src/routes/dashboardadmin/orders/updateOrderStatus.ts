@@ -18,6 +18,7 @@ const ALLOWED_STATUSES = [
   "Cancelled",
   "Refunded",
   "Delivered",
+  "Pickup",
 ] as const;
 type AllowedStatus = (typeof ALLOWED_STATUSES)[number];
 

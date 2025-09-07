@@ -163,6 +163,7 @@ import updateFactureStatus from "@/routes/dashboardadmin/factures/updateStatus";
 import getFcById from "@/routes/dashboardadmin/factures/getFcById";
 import createFacture from "@/routes/dashboardadmin/factures/createFacture";
 import createFcFromOrder from "@/routes/dashboardadmin/factures/createFcFromOrder";
+import pendingInvoices from "@/routes/dashboardadmin/factures/pendingInvoices";
 
 
 
@@ -387,6 +388,7 @@ app.use("/api/dashboardadmin/factures", updateFactureStatus);
 app.use("/api/dashboardadmin/factures", getFcById);
 app.use("/api/dashboardadmin/factures", createFacture);
 app.use("/api/dashboardadmin/factures", createFcFromOrder);
+app.use("/api/dashboardadmin/factures", pendingInvoices);
 
 
 /* delivery options */

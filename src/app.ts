@@ -281,6 +281,7 @@ import getPostById from "./routes/dashboardadmin/blog/post/getPostById";
 import updatePost from "./routes/dashboardadmin/blog/post/updatePost";
 
 import invoicePdfRouter from "@/routes/pdf/invoicePdf";
+import { invoiceZipRouter } from "@/routes/pdf/invoiceZip";
 
 /* 5️⃣  MOUNT PATHS (client) -------------------------------------------- */
 app.use("/api/signin", signinClient);
@@ -480,6 +481,7 @@ app.use("/api/dashboardadmin/blog/post", getPostById);
 app.use("/api/dashboardadmin/blog/post", updatePost);
 
 app.use("/api/pdf", invoicePdfRouter);
+app.use("/api/zip", invoiceZipRouter);
 
 /* 6️⃣  Health checks + 404 --------------------------------------------- */
 const apiHealth: RequestHandler = (_req, res) => {

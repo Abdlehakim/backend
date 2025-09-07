@@ -9,16 +9,14 @@
   "scripts": {
     "dev": "nodemon --watch 'src/**/*.ts' --exec \"node --env-file=.env.local -r ts-node/register -r tsconfig-paths/register src/app.ts\"",
     "dev:worker": "nodemon --watch 'src/**/*.ts' --exec \"node --env-file=.env.local -r ts-node/register -r tsconfig-paths/register src/jobs/invoiceWorker.ts\"",
-
     "build": "tsc",
-
     "start": "node -r module-alias/register dist/app.js",
     "start:api": "node -r module-alias/register dist/app.js",
     "start:worker": "node -r module-alias/register dist/jobs/invoiceWorker.js",
-
     "worker:invoice": "node -r module-alias/register dist/jobs/invoiceWorker.js"
   },
   "dependencies": {
+    "archiver": "^7.0.1",
     "bcryptjs": "^2.4.3",
     "bullmq": "^5.58.5",
     "cloudinary": "^2.5.1",
@@ -37,6 +35,7 @@
     "react-icons": "^5.5.0"
   },
   "devDependencies": {
+    "@types/archiver": "^6.0.3",
     "@types/bcrypt": "^5.0.2",
     "@types/bcryptjs": "^2.4.6",
     "@types/cookie-parser": "^1.4.8",

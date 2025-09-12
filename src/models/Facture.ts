@@ -101,7 +101,7 @@ const FactureCounterSchema = new Schema<IFactureCounter>(
   { collection: "facture_counters" }
 );
 
-const FactureCounter: Model<IFactureCounter> =
+export const FactureCounter: Model<IFactureCounter> =
   mongoose.models.FactureCounter ||
   mongoose.model<IFactureCounter>("FactureCounter", FactureCounterSchema);
 

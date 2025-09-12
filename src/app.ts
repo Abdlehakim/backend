@@ -165,6 +165,7 @@ import createFacture from "@/routes/dashboardadmin/factures/createFacture";
 import createFcFromOrder from "@/routes/dashboardadmin/factures/createFcFromOrder";
 import pendingInvoices from "@/routes/dashboardadmin/factures/pendingInvoices";
 import deleteFactures from "@/routes/dashboardadmin/factures/deleteFactures";
+import counter from "@/routes/dashboardadmin/factures/counter";
 
 
 
@@ -391,6 +392,7 @@ app.use("/api/dashboardadmin/factures", getFcById);
 app.use("/api/dashboardadmin/factures", createFacture);
 app.use("/api/dashboardadmin/factures", createFcFromOrder);
 app.use("/api/dashboardadmin/factures", pendingInvoices);
+app.use("/api/dashboardadmin/factures/counter", counter);
 
 
 /* delivery options */

@@ -1,6 +1,5 @@
 /* ------------------------------------------------------------------
    src/routes/dashboardadmin/client-company/getAllClientCompany.ts
-   Route : récupérer la liste complète des « ClientCompany »
 ------------------------------------------------------------------ */
 import { Router, Request, Response } from "express";
 import ClientCompany from "@/models/ClientCompany";
@@ -10,7 +9,6 @@ const router = Router();
 
 /**
  * GET /api/dashboardadmin/clientCompany
- * Renvoie tous les ClientCompany (triés par création desc.)
  */
 router.get(
   "/",

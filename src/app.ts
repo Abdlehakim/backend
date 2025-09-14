@@ -172,10 +172,14 @@ import counter from "@/routes/dashboardadmin/factures/counter";
 /* ---------- Dashboard Clients shops ---------- */
 import getAllClientShop from "./routes/dashboardadmin/client-shop/getAllClientShop";
 import createClientShop from "./routes/dashboardadmin/client-shop/createClientShop";
+import updateClientShop from "./routes/dashboardadmin/client-shop/updateClientShop";
+import deleteClientShop from "./routes/dashboardadmin/client-shop/deleteClientShop";
 
 /* ---------- Dashboard Clients company ---------- */
 import getAllClientCompany from "./routes/dashboardadmin/client-company/getAllClientCompany";
 import createClientCompany from "./routes/dashboardadmin/client-company/createClientCompany";
+import updateClientCompany from "./routes/dashboardadmin/client-company/updateClientCompany";
+import deleteClientCompany from "./routes/dashboardadmin/client-company/deleteClientCompany";
 
 
 /* ---------- Dashboard Clients address ---------- */
@@ -365,10 +369,14 @@ app.use("/api/dashboardadmin/client", deleteClient);
 /* client shop */
 app.use("/api/dashboardadmin/clientShop", createClientShop);
 app.use("/api/dashboardadmin/clientShop", getAllClientShop);
+app.use("/api/dashboardadmin/clientShop", deleteClientShop);
+app.use("/api/dashboardadmin/clientShop", updateClientShop);
 
 /* client Company */
 app.use("/api/dashboardadmin/clientCompany", createClientCompany);
 app.use("/api/dashboardadmin/clientCompany", getAllClientCompany);
+app.use("/api/dashboardadmin/clientCompany", updateClientCompany);
+app.use("/api/dashboardadmin/clientCompany", deleteClientCompany);
 
 /* Dashboard client address */
 app.use("/api/dashboardadmin/clientAddress", getAddressByClient);

@@ -22,6 +22,11 @@ export interface ISpecialPageBanner extends Document {
   BlogBannerImgUrl: string;
   BlogBannerImgId: string;
   BlogBannerTitle: string;
+
+  // Contact
+  ContactBannerImgUrl: string;
+  ContactBannerImgId: string;
+  ContactBannerTitle: string;
 }
 
 const SpecialPageBannerSchema = new Schema<ISpecialPageBanner>(
@@ -60,7 +65,7 @@ const SpecialPageBannerSchema = new Schema<ISpecialPageBanner>(
       unique: true,
     },
 
-    /* ------------------------ New-Products --------------------------- */
+    /* ------------------------ New-Products ---------------------------- */
     NPBannerImgUrl: {
       type: String,
       required: true,
@@ -93,15 +98,29 @@ const SpecialPageBannerSchema = new Schema<ISpecialPageBanner>(
       required: true,
       unique: true,
     },
+
+    /* ---------------------------- Contact ---------------------------- */
+    ContactBannerImgUrl: {
+      type: String,
+      required: true,
+      unique: true,
+    },
+    ContactBannerImgId: {
+      type: String,
+      required: true,
+      unique: true,
+    },
+    ContactBannerTitle: {
+      type: String,
+      required: true,
+      unique: true,
+    },
   },
   { timestamps: true }
 );
 
 const SpecialPageBanner: Model<ISpecialPageBanner> =
   mongoose.models.SpecialPageBanner ||
-  mongoose.model<ISpecialPageBanner>(
-    'SpecialPageBanner',
-    SpecialPageBannerSchema
-  );
+  mongoose.model<ISpecialPageBanner>('SpecialPageBanner', SpecialPageBannerSchema);
 
 export default SpecialPageBanner;

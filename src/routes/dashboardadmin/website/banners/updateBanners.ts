@@ -13,22 +13,6 @@ const router = Router();
 
 /**
  * PUT /api/dashboardadmin/website/banners/updateBanners/:id
- * ---------------------------------------------------------
- * Updates any of the text fields (titles) and/or replaces one or more
- * images (Best-Collection, Promotion, New-Products, Blog) for the singleton
- * SpecialPageBanner document.
- *
- * Multipart uploads (optional):
- *   • BCbanner            (maxCount: 1)
- *   • PromotionBanner     (maxCount: 1)
- *   • NPBanner            (maxCount: 1)
- *   • BlogBanner          (maxCount: 1)
- *
- * Body (all optional — only include what you want to change):
- *   • BCbannerTitle
- *   • PromotionBannerTitle
- *   • NPBannerTitle
- *   • BlogBannerTitle
  */
 router.put(
   "/updateBanners/:id",
@@ -38,14 +22,12 @@ router.put(
     { name: "PromotionBanner", maxCount: 1 },
     { name: "NPBanner", maxCount: 1 },
     { name: "BlogBanner", maxCount: 1 },
+    { name: "ContactBanner", maxCount: 1 }, // NEW
   ]),
   async (req: Request, res: Response): Promise<void> => {
     const { id } = req.params;
 
     try {
-      /* ------------------------------------------------------------------ */
-      /* Load existing document                                             */
-      /* ------------------------------------------------------------------ */
       const existing = await SpecialPageBanner.findById(id);
       if (!existing) {
         res.status(404).json({
@@ -55,15 +37,13 @@ router.put(
         return;
       }
 
-      /* ------------------------------------------------------------------ */
-      /* Prepare update payload                                            */
-      /* ------------------------------------------------------------------ */
       const updateData: Partial<ISpecialPageBanner> = {};
       const {
         BCbannerTitle,
         PromotionBannerTitle,
         NPBannerTitle,
         BlogBannerTitle,
+        ContactBannerTitle, // NEW
       } = req.body as Record<string, string | undefined>;
 
       if (BCbannerTitle !== undefined) {
@@ -107,13 +87,20 @@ router.put(
         updateData.BlogBannerTitle = BlogBannerTitle.trim();
       }
 
-      /* ------------------------------------------------------------------ */
-      /* Handle optional image replacements                                 */
-      /* ------------------------------------------------------------------ */
+      if (ContactBannerTitle !== undefined) {
+        if (!ContactBannerTitle.trim()) {
+          res
+            .status(400)
+            .json({ success: false, message: "ContactBannerTitle cannot be empty." });
+          return;
+        }
+        updateData.ContactBannerTitle = ContactBannerTitle.trim();
+      }
+
       const files = req.files as Record<string, Express.Multer.File[]>;
 
       /* -------- Best-Collection banner ---------- */
-      if (files.BCbanner?.[0]) {
+      if (files?.BCbanner?.[0]) {
         if (existing.BCbannerImgId) {
           try {
             await cloudinary.uploader.destroy(existing.BCbannerImgId);
@@ -130,7 +117,7 @@ router.put(
       }
 
       /* --------------- Promotion banner --------------- */
-      if (files.PromotionBanner?.[0]) {
+      if (files?.PromotionBanner?.[0]) {
         if (existing.PromotionBannerImgId) {
           try {
             await cloudinary.uploader.destroy(existing.PromotionBannerImgId);
@@ -147,7 +134,7 @@ router.put(
       }
 
       /* -------------- New-Products banner -------------- */
-      if (files.NPBanner?.[0]) {
+      if (files?.NPBanner?.[0]) {
         if (existing.NPBannerImgId) {
           try {
             await cloudinary.uploader.destroy(existing.NPBannerImgId);
@@ -164,7 +151,7 @@ router.put(
       }
 
       /* ----------------- Blog banner ----------------- */
-      if (files.BlogBanner?.[0]) {
+      if (files?.BlogBanner?.[0]) {
         if (existing.BlogBannerImgId) {
           try {
             await cloudinary.uploader.destroy(existing.BlogBannerImgId);
@@ -180,14 +167,27 @@ router.put(
         updateData.BlogBannerImgId = publicId;
       }
 
-      /* ------------------------------------------------------------------ */
-      /* Persist updates                                                    */
-      /* ------------------------------------------------------------------ */
-      const updated = await SpecialPageBanner.findByIdAndUpdate(
-        id,
-        updateData,
-        { new: true, runValidators: true }
-      );
+      /* ----------------- Contact banner ----------------- */
+      if (files?.ContactBanner?.[0]) {
+        if (existing.ContactBannerImgId) {
+          try {
+            await cloudinary.uploader.destroy(existing.ContactBannerImgId);
+          } catch (err) {
+            console.error("Cloudinary ContactBanner deletion error:", err);
+          }
+        }
+        const { secureUrl, publicId } = await uploadToCloudinary(
+          files.ContactBanner[0],
+          "banners"
+        );
+        updateData.ContactBannerImgUrl = secureUrl;
+        updateData.ContactBannerImgId = publicId;
+      }
+
+      const updated = await SpecialPageBanner.findByIdAndUpdate(id, updateData, {
+        new: true,
+        runValidators: true,
+      });
 
       if (!updated) {
         res.status(404).json({
@@ -208,9 +208,7 @@ router.put(
         const msgs = Object.values((err as any).errors).map(
           (e: any) => e.message
         );
-        res
-          .status(400)
-          .json({ success: false, message: msgs.join(" ") });
+        res.status(400).json({ success: false, message: msgs.join(" ") });
       } else {
         res.status(500).json({
           success: false,

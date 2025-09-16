@@ -12,29 +12,6 @@ const router = Router();
 
 /**
  * POST /api/dashboardadmin/website/banners/createBanners
- * ------------------------------------------------------
- * Creates the *single* “special-page” banners document, which holds
- * the four hero banners used across dedicated landing pages:
- *   1. Best-Collection   → “BCbanner”
- *   2. Promotion         → “PromotionBanner”
- *   3. New-Products      → “NPBanner”
- *   4. Blog              → “BlogBanner”
- *
- * Request body:
- *   • BCbannerTitle
- *   • PromotionBannerTitle
- *   • NPBannerTitle
- *   • BlogBannerTitle
- *
- * Multipart uploads:
- *   • BCbanner         (maxCount: 1)
- *   • PromotionBanner  (maxCount: 1)
- *   • NPBanner         (maxCount: 1)
- *   • BlogBanner       (maxCount: 1)
- *
- * All images are uploaded to Cloudinary under the folder “banners”.
- * The route rejects if a document already exists or if required
- * titles / images are missing.
  */
 router.post(
   "/createBanners",
@@ -44,12 +21,10 @@ router.post(
     { name: "PromotionBanner", maxCount: 1 },
     { name: "NPBanner", maxCount: 1 },
     { name: "BlogBanner", maxCount: 1 },
+    { name: "ContactBanner", maxCount: 1 }, // NEW
   ]),
   async (req: Request, res: Response): Promise<void> => {
     try {
-      // ------------------------------------------------------------------
-      // Ensure we only ever have ONE document
-      // ------------------------------------------------------------------
       if (await SpecialPageBanner.exists({})) {
         res.status(400).json({
           success: false,
@@ -59,14 +34,12 @@ router.post(
         return;
       }
 
-      // ------------------------------------------------------------------
-      // Validate titles
-      // ------------------------------------------------------------------
       const {
         BCbannerTitle = "",
         PromotionBannerTitle = "",
         NPBannerTitle = "",
         BlogBannerTitle = "",
+        ContactBannerTitle = "", // NEW
       } = req.body as Record<string, string>;
 
       if (!BCbannerTitle.trim()) {
@@ -94,10 +67,13 @@ router.post(
           .json({ success: false, message: "BlogBannerTitle is required." });
         return;
       }
+      if (!ContactBannerTitle.trim()) {
+        res
+          .status(400)
+          .json({ success: false, message: "ContactBannerTitle is required." });
+        return;
+      }
 
-      // ------------------------------------------------------------------
-      // Validate files
-      // ------------------------------------------------------------------
       const files = req.files as Record<string, Express.Multer.File[]>;
 
       if (!files?.BCbanner?.[0]) {
@@ -125,10 +101,14 @@ router.post(
           .json({ success: false, message: "BlogBanner image is required." });
         return;
       }
+      if (!files?.ContactBanner?.[0]) {
+        res.status(400).json({
+          success: false,
+          message: "ContactBanner image is required.",
+        });
+        return;
+      }
 
-      // ------------------------------------------------------------------
-      // Upload images to Cloudinary
-      // ------------------------------------------------------------------
       const {
         secureUrl: BCbannerImgUrl,
         publicId: BCbannerImgId,
@@ -149,9 +129,11 @@ router.post(
         publicId: BlogBannerImgId,
       } = await uploadToCloudinary(files.BlogBanner[0], "banners");
 
-      // ------------------------------------------------------------------
-      // Persist document
-      // ------------------------------------------------------------------
+      const {
+        secureUrl: ContactBannerImgUrl,
+        publicId: ContactBannerImgId,
+      } = await uploadToCloudinary(files.ContactBanner[0], "banners");
+
       const created = await SpecialPageBanner.create({
         BCbannerImgUrl,
         BCbannerImgId,
@@ -168,6 +150,10 @@ router.post(
         BlogBannerImgUrl,
         BlogBannerImgId,
         BlogBannerTitle: BlogBannerTitle.trim(),
+
+        ContactBannerImgUrl,
+        ContactBannerImgId,
+        ContactBannerTitle: ContactBannerTitle.trim(),
       } as Partial<ISpecialPageBanner>);
 
       res.status(201).json({
@@ -177,16 +163,11 @@ router.post(
       });
     } catch (err: unknown) {
       console.error("Create Banners Error:", err);
-      if (
-        err instanceof Error &&
-        (err as any).name === "ValidationError"
-      ) {
-        const messages = Object.values(
-          (err as any).errors,
-        ).map((e: any) => e.message);
-        res
-          .status(400)
-          .json({ success: false, message: messages.join(" ") });
+      if (err instanceof Error && (err as any).name === "ValidationError") {
+        const messages = Object.values((err as any).errors).map(
+          (e: any) => e.message,
+        );
+        res.status(400).json({ success: false, message: messages.join(" ") });
       } else {
         res
           .status(500)

@@ -12,7 +12,7 @@ router.get(
     try {
       const latestNewProducts = await Product.find({
         vadmin: "approve",
-        statuspage: "New-Products",
+        statuspage: "new-products",
       })
         .sort({ createdAt: -1 })
         .limit(8)
@@ -54,7 +54,7 @@ router.get(
       console.error("NewProductsCollectionHomePage Error:", err);
       res
         .status(500)
-        .json({ error: "Error fetching latest New-Products collection" });
+        .json({ error: "Error fetching latest new-products collection" });
     }
   }
 );

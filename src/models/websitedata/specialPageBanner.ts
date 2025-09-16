@@ -13,7 +13,7 @@ export interface ISpecialPageBanner extends Document {
   PromotionBannerImgId: string;
   PromotionBannerTitle: string;
 
-  // New-Products
+  // new-products
   NPBannerImgUrl: string;
   NPBannerImgId: string;
   NPBannerTitle: string;
@@ -65,7 +65,7 @@ const SpecialPageBannerSchema = new Schema<ISpecialPageBanner>(
       unique: true,
     },
 
-    /* ------------------------ New-Products ---------------------------- */
+    /* ------------------------ new-products ---------------------------- */
     NPBannerImgUrl: {
       type: String,
       required: true,

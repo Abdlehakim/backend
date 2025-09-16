@@ -133,7 +133,7 @@ router.put(
         updateData.PromotionBannerImgId = publicId;
       }
 
-      /* -------------- New-Products banner -------------- */
+      /* -------------- new-products banner -------------- */
       if (files?.NPBanner?.[0]) {
         if (existing.NPBannerImgId) {
           try {

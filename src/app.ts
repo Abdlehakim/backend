@@ -98,6 +98,7 @@ import categorieSubCategoriePage from "./routes/NavMenu/categorieSubCategoriePag
 import ProductPromotion from "./routes/NavMenu/ProductPromotion";
 import NewProducts from "./routes/NavMenu/newProducts";
 import BestProductCollection from "./routes/NavMenu/BestProductCollection";
+import productsByStatus from "./routes/NavMenu/productsByStatus";
 
 /* ---------- header Website / sections ---------- */
 import GetHeadertopData from "./routes/website/header/getHeadertopData";
@@ -313,6 +314,7 @@ app.use("/api/NavMenu/contactus", contactUsRoutes);
 app.use("/api/NavMenu/ProductPromotion", ProductPromotion);
 app.use("/api/NavMenu/NewProducts", NewProducts);
 app.use("/api/NavMenu/BestProductCollection", BestProductCollection);
+app.use("/api/NavMenu/products", productsByStatus);
 
 app.use("/api/blog", postsRoutes);
 app.use("/api/blog", PostCardData);

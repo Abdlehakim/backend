@@ -24,7 +24,7 @@ export interface IProduct extends Document {
   discount: number;
 
   stockStatus: "in stock" | "out of stock";
-  statuspage: "none" | "New-Products" | "promotion" | "best-collection";
+  statuspage: "none" | "new-products" | "promotion" | "best-collection";
   vadmin: "not-approve" | "approve";
 
   mainImageUrl: string;
@@ -101,7 +101,7 @@ const ProductSchema = new Schema<IProduct>(
     discount: { type: Number, default: 0, min: 0, max: 100 },
 
     stockStatus: { type: String, enum: ["in stock", "out of stock"], default: "in stock" },
-    statuspage: { type: String, enum: ["none", "New-Products", "promotion", "best-collection"], default: "none" },
+    statuspage: { type: String, enum: ["none", "new-products", "promotion", "best-collection"], default: "none" },
     vadmin: { type: String, enum: ["not-approve", "approve"], default: "not-approve" },
 
     /* ------------ images ------------ */

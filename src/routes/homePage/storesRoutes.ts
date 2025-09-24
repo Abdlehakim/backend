@@ -7,12 +7,11 @@ const router = Router();
 
 /* ---------- helpers ---------- */
 /** Crop to card aspect (~16/14 ≈ 1.1429). Target ~480×420 so Next/Image picks ~480px instead of 640px. */
-const toCardThumb = (url?: string | null) =>
+const toCardThumb =  (url?: string | null, size = 400) =>
   url
     ? url.replace(
         "/upload/",
-        // AVIF/WebP via f_auto, quality via q_auto, crop fill to aspect, center with g_auto, retina via dpr_auto
-        "/upload/f_auto,q_auto,c_fill,g_auto,w_480,h_420,dpr_auto/"
+        `/upload/f_auto,q_auto,c_fill,g_auto,w_${size},h_${size},dpr_auto/`
       )
     : null;
 
@@ -44,8 +43,8 @@ router.get("/", async (_req: Request, res: Response): Promise<void> => {
         return {
           _id: s._id?.toString?.(),
           name: s.name,
-          image: optimized,      // optimized to 480×420 (aspect-correct)
-          blurDataURL: blur,     // real LQIP
+          image: optimized,
+          blurDataURL: blur,
           phoneNumber: s.phoneNumber,
           address: s.address,
           city: s.city,
@@ -55,7 +54,6 @@ router.get("/", async (_req: Request, res: Response): Promise<void> => {
       })
     );
 
-    // Strong caching: browser 10m, CDN 1h, allow stale while revalidating 1d
     res.setHeader(
       "Cache-Control",
       "public, max-age=600, s-maxage=3600, stale-while-revalidate=86400"

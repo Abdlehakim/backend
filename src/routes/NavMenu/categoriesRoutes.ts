@@ -113,5 +113,101 @@ router.get("/getAll", async (_req: Request, res: Response) => {
   }
 });
 
-/* unchanged: /getAllName, /:id/subcategories, /title */
+
+/* ================================================================== */
+/*  GET /api/categories/getAllName                                    */
+/* ================================================================== */
+router.get("/getAllName", async (req: Request, res: Response) => {
+  try {
+    const docs = await Categorie.aggregate([
+      { $match: { vadmin: "approve" } },
+      { $project: { name: 1, slug: 1 } },
+      {
+        $lookup: {
+          from: SubCategorie.collection.name,
+          let: { catId: "$_id" },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $and: [
+                    { $eq: ["$categorie", "$$catId"] },
+                    { $eq: ["$vadmin", "approve"] },
+                  ],
+                },
+              },
+            },
+            { $project: { name: 1, slug: 1 } },
+          ],
+          as: "subcategories",
+        },
+      },
+    ]);
+
+    const result = docs.map((cat: any) => ({
+      name: cat.name,
+      slug: cat.slug,
+      subcategories: (cat.subcategories || []).map((s: any) => ({
+        name: s.name,
+        slug: s.slug,
+      })),
+    }));
+
+    res.json(result);
+  } catch (err) {
+    console.error("Error fetching category names:", err);
+    res.status(500).json({ error: "Error fetching category names" });
+  }
+});
+
+
+
+
+
+/*
+================================================================== */
+/*  GET /api/categories/:id/subcategories                              */
+/* ================================================================== */
+router.get('/:id/subcategories', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const subs = await SubCategorie.find({ categorie: id, vadmin: 'approve' })
+      .select('_id name slug bannerUrl iconUrl imageUrl')
+      .lean();
+
+    const result = subs.map((sub: any) => ({
+      _id:       sub._id.toString(),
+      name:      sub.name,
+      slug:      sub.slug,
+      bannerUrl: sub.bannerUrl || null,
+      iconUrl:   sub.iconUrl   || null,
+      imageUrl:  sub.imageUrl  || null,
+    }));
+
+    res.json(result);
+  } catch (err) {
+    console.error('Error fetching subcategories:', err);
+    res.status(500).json({ error: 'Error fetching subcategories' });
+  }
+});
+
+
+/* ================================================================== */
+/*  GET /api/categories/title                                          */
+/* ================================================================== */
+router.get('/title', async (_req: Request, res: Response) => {
+  try {
+    const titleCategorie = await HomePageData
+      .findOne()
+      .select('HPcategorieTitle HPcategorieSubTitle')
+      .lean();
+
+    res.json(titleCategorie);
+  } catch (err) {
+    console.error('Error fetching title categorie:', err);
+    res.status(500).json({ error: 'Error fetching title categorie' });
+  }
+});
+
 export default router;
